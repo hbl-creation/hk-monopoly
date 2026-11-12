@@ -19,3 +19,10 @@
 - 街道：GitHub hkstreets/maps
 
 原始 OpenStreetMap 檔案太大冇放入嚟，要重新生成地圖時再下載。
+
+## 編輯地圖
+1. 打開 `prototypes/yuenlong-monopoly.html`，撳右邊「✎ 編輯地圖」
+2. 🧽 擦路：喺路上面掃過就擦走（連路名）；🖌 補返：掃返出嚟；筆刷大小可以調
+3. ✋ 移動／改地：撳一塊街區，改類型（可買／農地／地產商／公園／政府…）、名稱、地產商、市值；「同另一塊合併」再撳隔籬嗰塊
+4. 編輯會自動儲存喺瀏覽器；撳「⬇ 匯出」下載 `yuenlong-edits.json`，傳俾 Claude
+5. Claude 跑 `python3 scripts/build_html.py yuenlong yuenlong-edits.json`：編輯併入 `edits/yuenlong.json`（總檔），重新生成原型頁。生成數據（`data/*3.json`）永遠唔會手改，所以重新跑地圖程式都唔會冇咗你嘅編輯
