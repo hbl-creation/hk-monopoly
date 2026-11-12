@@ -29,3 +29,7 @@
 
 ## 建築物數據
 `scripts/csdi_buildings.py` 由地政總署 CSDI 空間數據共享平台（Building 數據集，WFS）下載建築物輪廓、中文名同層數，存喺 `data/<區>-bld.json`。CSDI 條款容許商業同非商業用途，頁面右下角已註明來源。`build_html.py` 會自動將建築物歸入街區，並用政府名稱補返街區名。
+
+## 地段界線（街區跟真實地段）
+`scripts/csdi_lots.py` 由 CSDI 下載地政總署「Lot」地段界線，將可買／地產商街區重新劃分：每個地段歸入重疊最多嘅分區，再將相鄰、性質相同（一般／農地／同一地產商）嘅地段合併到適合遊戲嘅大小（市區約 3,500 平方米、農地約 9,000 平方米），地段永遠唔會切開。公園、政府、學校、宗教、地標、銀行保留原本形狀。冇地段嘅政府土地（斜坡、巷、路邊）唔再係街區。輸出 `data/<區>4.json`，`build_html.py` 有 4 就用 4。
+流程：`yuenlong.py` → `yuenlong3.py` → `csdi_buildings.py` → `csdi_lots.py` → `build_html.py`

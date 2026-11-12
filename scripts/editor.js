@@ -64,7 +64,7 @@ function buildBld(){if(bldBuilt||!M.bld)return;bldBuilt=true;let d='';
 document.head.insertAdjacentHTML('beforeend','<style>.bn{fill:#4A4336;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:rgba(255,255,255,.85);stroke-width:2.5px;stroke-linejoin:round;font-weight:500}#attrib{position:fixed;right:8px;bottom:4px;z-index:5;font-size:10px;color:#6B6F76;background:rgba(255,255,255,.7);padding:1px 6px;border-radius:6px}</style>');
 document.body.insertAdjacentHTML('beforeend','<div id="attrib">建築物數據：地政總署（CSDI 空間數據共享平台）· 道路：© OpenStreetMap</div>');
 const _ap=apply;apply=function(){_ap();const u=vb.w/Math.max(1,svg.getBoundingClientRect().width);if(LOD>=2)buildBld();
-  gBld.style.display=LOD>=2?'':'none';if(gBN){gBN.style.display=LOD===3&&u<0.35?'':'none';gBN.setAttribute('font-size',8.5*u)}};
+  gBld.style.display=LOD>=2?'':'none';if(gBN){const sh=LOD===3&&u<0.35;gBN.style.display=sh?'':'none';gBN.setAttribute('font-size',8.5*u);if(gLN)gLN.style.display=LOD===3&&!sh?'':'none'}};
 apply();
 // road mask: black strokes hide roads, white strokes bring them back (later strokes win)
 const BIG=6000,mk=el('mask',{id:'rmask',maskUnits:'userSpaceOnUse',x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG},defs);

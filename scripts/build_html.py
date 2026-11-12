@@ -13,7 +13,8 @@ from shapely.ops import unary_union
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 key = sys.argv[1]
-data = json.load(open(f'{ROOT}/data/{key}3.json'))
+dp = f'{ROOT}/data/{key}4.json' if os.path.exists(f'{ROOT}/data/{key}4.json') else f'{ROOT}/data/{key}3.json'  # 4 = rebuilt on land lots
+data = json.load(open(dp))
 ep = f'{ROOT}/edits/{key}.json'
 E = json.load(open(ep)) if os.path.exists(ep) else {}
 for k in ('lots', 'merge', 'erase'): E.setdefault(k, [] if k != 'lots' else {})
@@ -65,6 +66,16 @@ if os.path.exists(bp):
         if hits and b[1]:
             base = re.sub(r'\s*(第?[0-9０-９A-ZＡ-Ｚ一二三四五六七八九十]+(座|期|號舖))+$', '', b[1]).strip() or b[1]
             names[hits[0]['id']].append((poly.area, base))
+    cover = collections.Counter()
+    for b in B:
+        if b[3] >= 0: cover[b[3]] += Polygon(list(zip(b[0][0::2], b[0][1::2]))).area
+    fixed = 0
+    for l in live:  # OSM-only "farmland / empty" guesses that actually have buildings on them
+        if l['k'] == 'buy' and l.get('f') and cover[l['id']] > 0.25 * l['m2']:
+            l['f'] = 0; l['p'] = round(l['p'] / 0.45); l['r'] = round(l['r'] / 0.45, 1); fixed += 1
+            if l['n'] in ('農地', '空地'): l['n'] = ''
+        elif l['k'] == 'buy' and not l.get('f') and l['n'] == '空地' and cover[l['id']] > 0.12 * l['m2']: l['n'] = ''
+    print('farmland/empty labels corrected by building cover:', fixed)
     for l in live:
         ns = []
         for _, n in sorted(names[l['id']], reverse=True):
