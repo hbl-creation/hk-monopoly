@@ -1,0 +1,8 @@
+{
+  // Cloudflare Worker that serves the playable prototypes as static files.
+  "name": "hk-monopoly",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./prototypes"
+  }
+}
