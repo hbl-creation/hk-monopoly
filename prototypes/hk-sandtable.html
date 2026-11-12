@@ -1,0 +1,177 @@
+<title>香港十八區沙盤</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@700;900&family=Noto+Sans+HK:wght@400;500;700&display=swap">
+<style>
+/* Layout: one-screen night-harbour sandtable; map fills the screen, controls float at the edges like a war-room table */
+:root{
+  --sea:#0E1B2C; --sea-2:#152740; --ink:#EDE7D9; --ink-dim:#A8B3C2;
+  --panel:rgba(12,22,36,.82); --line:rgba(237,231,217,.16); --red:#E0473F;
+  --display:"Noto Serif HK","Songti TC",serif; --body:"Noto Sans HK","PingFang HK","Microsoft JhengHei",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--sea);color:var(--ink);font-family:var(--body);overflow:hidden}
+#app{position:relative;height:100%;overflow:hidden}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#c.px{image-rendering:pixelated}
+.top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;
+  padding-block:14px 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+h1{font-family:var(--display);font-weight:900;font-size:clamp(20px,3.4vw,30px);letter-spacing:.04em;margin:0;line-height:1.1;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+h1 small{display:block;font-family:var(--body);font-weight:400;font-size:12px;letter-spacing:.12em;color:var(--ink-dim);margin-top:6px}
+.score{pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px;color:var(--ink-dim);
+  font-variant-numeric:tabular-nums;backdrop-filter:blur(6px)}
+.score b{color:var(--red);font-size:18px;font-weight:700;margin-right:2px}
+.bar{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  padding-block:0 calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));pointer-events:none}
+.tip{pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:13px;min-height:20px;max-width:100%;color:var(--ink)}
+.tip .d{color:var(--ink-dim);margin-right:6px}
+.btns{display:flex;gap:8px;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
+.seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;border-radius:0;background:transparent}
+.seg button+button{border-left:1px solid var(--line)}
+button{font:500 13px var(--body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer}
+button:hover{border-color:rgba(237,231,217,.45)}
+button:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+button[aria-pressed="true"]{background:var(--ink);color:var(--sea)}
+.lbl{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;transform:translate(-50%,-100%);will-change:transform}
+.lbl.dist{font-family:var(--display);font-weight:700;font-size:13px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.5);letter-spacing:.06em}
+.lbl.peak{font-size:11px;color:#F3EBD3;text-shadow:0 1px 3px rgba(0,0,0,.95)}
+.lbl.peak::before{content:"▲ ";font-size:9px;color:#C9B98E}
+#loading{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-dim);font-size:14px}
+@media (max-width:560px){.lbl.dist{font-size:11px}.lbl.peak{display:none}}
+</style>
+<div id="app">
+  <canvas id="c"></canvas>
+  <div id="labels"></div>
+  <div id="loading">正在砌地形…</div>
+  <div class="top">
+    <h1>香港十八區沙盤<small>18 區 · 89 個地區 · 撳一下佔領</small></h1>
+    <div class="score" aria-live="polite"><b id="cnt">0</b>/ 89 已佔領</div>
+  </div>
+  <div class="bar">
+    <div class="tip" id="tip">拖動旋轉，雙指或滾輪縮放；撳任何地區佔領</div>
+    <div class="btns">
+      <span class="seg" role="group" aria-label="地形風格">
+        <button data-style="voxel" aria-pressed="true">方塊</button>
+        <button data-style="poly" aria-pressed="false">低多邊形</button>
+        <button data-style="smooth" aria-pressed="false">平滑地形</button>
+      </span>
+      <button id="pix" aria-pressed="false">像素化</button>
+      <button id="reset">重設</button>
+    </div>
+  </div>
+</div>
+<script>window.HKDATA={"W": 200, "H": 146, "rle": "0:706|65:6|0:194|65:7|0:6|64|0:184|65:11|64:11|0:22|64:2|0:154|65:11|64:12|0:21|64:2|0:42|71:2|0:110|65:11|64:13|0:5|64:2|0:2|64:2|0:9|64:6|0|64|0:36|71:2|0:109|65:12|64:13|0:4|64:3|0|64:2|0:10|64:2|0:2|64|0:39|71:2|0:104|65:3|0:2|65:13|64:9|0:7|64:6|0:11|64:2|0:41|71:3|0:100|65:21|64:8|0:8|64:6|0|64|0:10|64|0:2|64:2|0:6|64|0:32|71:3|0:87|66|0:10|65:21|64:8|0:3|64|0:4|64:8|0:8|64:4|0:5|64|0:125|66:5|0|66|0:3|62:3|65:20|64:6|0|64|0:7|64:10|0:6|64:3|0|64:2|0|64|0:2|64|0:123|66:9|62|0|62:5|65:19|64:6|0:6|64:12|0:14|64:2|0|64|0:124|66:8|62:7|65:20|64:5|0:4|64:13|0:4|64:3|0:9|64:3|0:125|66:7|62:8|65:19|64:5|0|64:22|0|64|0:7|64|0|64:2|0:125|61|66:6|62:9|65:18|64:30|0:8|64:2|0:125|61:2|66:6|62:10|65:17|64:29|0|64|0:7|64:2|0:118|61:5|0|61:3|66:6|62:11|65:16|64:28|0:9|64:4|0:116|61:10|66:7|62:11|65:15|64:26|0|64|0:9|64:4|0:116|61:11|66:6|62:11|63|65:15|64:25|0:7|64:6|0:118|61:10|66:7|62:10|63:4|65:13|64:31|0:2|64:2|0:8|64|71|0:105|61|0:4|61:11|66:7|62:9|63:8|65:10|64:32|0|64|0:7|64:2|71|0:105|61:17|66:7|62:9|63:10|65:8|64:14|70|64:18|0:4|64:4|71:2|0:9|71:2|0:94|61:18|66:7|62:8|63:14|65:5|64:13|70:3|64:24|71:2|0:10|71|0:94|61:19|66:7|62:7|63:17|65:4|64:11|70:5|64:7|71|64|71:3|64:9|71:3|0:11|71|0:93|61:21|66:6|62:6|63:15|67:3|70:3|65|64:10|70:7|64:3|71|64|71:8|64:6|71:3|0:105|61:22|66:7|62:5|63:14|67:4|70:9|64:3|70:12|71:12|64:2|71:4|0:97|59|57:2|0:6|61:22|66:7|62:4|63:8|67:4|63:3|67:4|70:25|71:15|0:98|59:2|57:4|0:4|61:21|66:8|62:3|63:9|67:12|70:24|71:15|0:15|71:2|0:81|59|57:5|0:3|61:21|58|66:8|62:2|63:11|67:11|70:24|71:13|0:16|71:4|0:80|59|57:4|0:2|57|61|0|61:18|58:3|66:8|62|63:10|69|67:12|70:24|71:12|0:6|71|0:2|71|0:7|71:3|0:80|59|57:4|0:2|57|0:3|61:16|58:5|66:8|62|63:9|69|67:14|70:23|71:10|0:7|71:3|0:4|71:2|0:3|71:4|0:78|59:2|57:5|0|57|0|57:2|61|0|61:12|58:7|66:8|63:8|69:3|67:14|70:23|71:7|0:9|71:3|0:2|71|0:2|71:2|0:4|71:3|0:77|59:2|57:6|0|57|0|57:2|61|0:2|61:9|58:9|66:6|60:2|63:7|69:4|67:14|70:7|0|70:3|0:2|70:11|71:2|0|71|0:9|71:8|0:2|71:2|0:5|71|0:77|59:2|57:8|0:2|57:2|56:4|61:5|58:12|66:3|58:2|60:5|63:2|69:7|67:15|70:5|0:2|70|0:4|70:11|71:2|0:10|71:8|0:3|71:2|0:4|71:2|0:76|59:3|57:12|56:5|0|56:2|58:17|60:8|69:6|67:16|70:4|0:9|70:10|0:12|71:8|0:2|71:4|0:81|59:2|57:12|56:9|58:16|60:8|69:7|67:16|70:4|0:4|70|0:5|70:8|0:12|71:12|0|71:2|0:81|59:2|57:12|56:9|58:15|60:9|69:7|67:17|70:3|0:11|70:6|0:14|71:11|0:7|71:2|0:74|59:2|57:12|56:10|58:15|60:8|69:8|67:16|68|0:3|70:4|0:2|70:3|0:3|70:4|0:11|71|0:3|71:11|0:7|71:3|0:70|59:4|57:12|56:10|58:15|60:8|69:9|67:15|68:2|0:2|70:3|0|70:2|0|70:2|0:4|70:2|0:11|71|0|71:15|0:7|71:3|0:68|59:6|57:12|56:10|58:14|60:8|69:9|67:12|0:10|70:3|0|70:2|0:5|70|0:11|71:2|0|71:15|0:6|71:4|0:66|59:7|57:12|56:11|58:13|60:9|69:9|67:11|0:12|70|0:20|71:20|0:4|71:4|0:67|59:7|57:12|56:11|58:13|60:8|69:10|67:12|0:31|71:21|0:4|71:4|0:66|59:7|57:12|56:12|58:12|60:9|69:10|67:12|68|0:32|71:19|0:4|71:4|81|0:64|59:8|57:11|56:13|58:11|60:10|69:9|67:11|68:7|0:8|70|0:18|71:18|0:3|71|0:2|71:4|81|0:64|59:7|57:12|56:13|58:11|60:11|69:8|67:10|68:10|0:11|75:2|0:13|71:18|0|71:2|0:2|71:3|81:11|0:55|55:5|59|57:12|56:14|58:10|60:12|69:8|67:9|68:11|0:12|75:2|0:2|70|0:3|70:2|0:4|71:18|0|71:2|0:2|71:4|81:11|0:53|59|55:15|57:3|56:14|58:9|60:13|69:8|67:8|68:13|0:10|75:4|70:7|0:5|71:16|0|71:4|0|71:4|81:10|0:52|59:2|55:16|57:2|56:15|58:8|60:15|69:7|67:7|68:15|0:6|75:7|70:7|0:6|71:6|81|71:13|0|71:4|81:10|0:50|55:2|59:2|55:16|57|56:16|58:8|60:16|69:5|67:6|68:14|74|68|75:2|0:5|75:7|70:7|0:5|71:7|81:4|71:9|0:2|71:5|81:9|0:45|54:5|55:2|59|55:21|56:12|58:8|60:17|69:5|67:5|68:15|74:2|75:3|0:3|75:8|70:7|0:4|71:8|81:5|71:14|81:10|0:44|54:7|55:23|56:12|58:7|60:19|69:4|67:4|68:16|74:3|75:2|0:3|75:8|70:6|0:3|71:9|81:6|71:14|81:6|0:3|81:3|0:41|54:8|55:23|56:12|58:6|60:20|69|51:4|67|51|68:12|74:8|75:2|0:3|75:8|70:7|0:2|71:4|77:2|71|77|71|81:7|71:3|81:2|71:8|81:4|0:5|81:3|0:40|54:9|55:21|53:3|56:11|58:6|60:20|51:7|68:9|74:12|75|0:2|75:9|70:8|0|71:4|77:4|81:14|71:6|81:5|0:6|81:3|0:38|54:11|55:19|53:4|56:11|58:5|60:18|51:16|74:16|0:2|75:10|70:8|71:3|77:6|81:15|71:3|81:6|0:46|54:12|55:18|53:5|56:11|58:2|53:3|60:13|51|60:3|51:18|74:15|75|0|75:10|70:8|71:3|77:6|81:15|71:2|81:6|0:48|54:11|52:17|53:21|60:13|51:23|74:14|76|0|76|75:10|68|70:7|71:2|77:7|81:23|0:51|54:8|52:16|53:22|60:9|51|60:2|51:24|74:13|76|0|76:3|75:10|68|70:6|77:9|81:22|0:4|81|0:47|54:9|52:15|53:22|60:8|49:2|51:25|74:14|0|76:6|75:7|68:3|70:4|77:11|81:20|0:53|54:9|52:15|53:25|60:3|49:5|51:25|72:2|74:10|0|76:9|75:5|68|77:17|81:24|0:49|54:9|52:15|53:25|60|49:8|51:23|73|72:6|74:5|0|76:11|75:4|77:8|0|77|0:2|77:6|81:24|0:51|54:7|52:15|53:24|49:10|48:4|51:18|73:3|72:9|76:15|75:2|77:8|0:4|77:7|0:2|81:22|0:50|54:7|52:15|53:24|49:10|48:11|51:10|73:5|72:7|0|76:15|77:10|0:7|77:3|0:3|81:24|0:48|54:7|52:15|53:18|49:16|48:18|51:2|73:7|72:6|0|76:15|77:10|0:7|77|0|77|0:2|81|0|81:23|0:34|54|0:13|54:7|52:15|53:19|49:15|48:13|44:3|48:2|73:10|72:4|0|72:2|76:14|77:10|0:15|81:22|0:35|54:2|0:10|54:8|52:14|53:16|50|49:18|48:14|44:4|73:11|72:2|0|72:3|76:13|77:10|0:9|77:4|0:4|81:21|0:46|54:9|52:14|53:15|50:4|49:16|48:14|44:3|73:12|72:6|76:12|77:12|0:8|77:4|81|0|81:2|0:3|81:17|0:36|54:2|0:10|54:8|52:14|53:15|50:5|49:15|48:14|44:3|73:13|72:6|76:9|77:13|0:9|77:5|0|81|0|81|0:2|81:13|0:2|81:3|0:35|54|0:12|54:7|52:14|53:16|50:6|49:14|48|0:2|48:5|44:8|73:14|72:5|76:7|77:12|0|77:2|0:5|77:2|0:2|77:5|81|0:2|81|0|81:14|0:3|81:2|0:50|54|0:2|54:2|52:8|0:2|52:4|53|0|53:15|50:6|49:6|0:3|49:3|0:5|48:4|44:7|73:16|72:4|76:6|77:12|0:2|77:2|0:4|77:3|0:2|77:5|81|0:2|81|0|81:16|0|81:2|0:55|52:9|0:2|52|0|52|53|0:2|53:4|0|53:7|50:8|0:2|49:3|0:13|48:2|44:9|73:16|72:3|76:6|77:12|0:3|77|0:6|77:2|0:2|77:5|0:4|81:16|0:58|52:6|0:5|52|0:12|53:4|50:7|0:11|46:8|0|46|44:9|73:18|72:3|76:5|77:11|0:3|77:3|0:5|77|0:4|77:4|0:4|81:14|0:62|52:3|0|52|0:18|53:2|50:5|0:12|46:10|0|46|45:2|44:6|73:19|72:3|76:2|37:2|80:2|77:10|0:2|77:5|0:4|77|0:3|77:5|81:2|0:4|81:13|0:63|52|0:22|53|50|0:8|50|0|50|0:5|46:9|0|46|45:5|44:3|73:20|72|37:5|80:6|77:5|0|77|0:3|77:2|0:6|77|0:2|77:6|81:2|0:4|81:11|0:42|54|0:54|50:2|0:6|46:9|0:2|45:7|44|73:17|37:7|36:2|80:11|77:3|0:3|77|0:9|77:6|81|0:4|81:4|0|81:3|0:2|81|0:98|50:2|0:7|46:9|0|45:9|73:12|38|35|37:7|36:4|80:15|77|0:11|77:6|81|0:5|81|0|81:4|0|81:2|0:45|54|0:49|50|0:3|50:3|0:6|46:9|0:3|45:8|73:4|26|27|73|27|73|33:2|38:2|35:3|37:2|36:6|80:15|0:13|77:5|0:6|81|0:2|81:3|0:48|54|0:49|50:3|0:2|50|0:7|46:9|0:3|45:8|26:5|27:3|33:4|38|35:4|36:7|80:15|0:14|77|0|77:3|0:9|81:2|0:98|50:4|0:11|46:7|47|0:2|45:4|28:2|45:2|26:5|27:4|33:3|38:2|35:3|36:8|80:14|0:16|77:3|0:9|81:2|0:96|50:6|0:11|46:6|47:2|0:4|47|28:5|26:4|25|27:4|33:4|38|35:3|36:8|80:14|0:16|77:3|0:9|81:3|0|81|0:88|50|0:2|50:8|0:11|46:5|47:3|0:3|47:4|28:3|26:4|25|27:5|33:3|38:2|35|36:2|32|36:6|80:15|0:15|78:4|0|81|0:8|81:2|0:89|50|0|50:9|0:11|46:4|47:5|0:2|47:5|28|26:4|25:3|27:4|33:2|32:3|35|32:2|34|39:5|42:3|80:13|0:15|78:5|0:9|81:2|0|81|0:68|52:2|0:15|50:2|0|50:10|0:11|46:3|47:5|0:3|47:5|28|26:4|25:4|27:2|33:3|32:6|34|39:5|42:3|80:14|0:6|80:2|0:7|78:3|0:11|81|0:2|81|0:82|50:3|0|50:11|0:11|46:2|0:11|47:2|28:2|0|26:2|25:3|24:2|23:2|31:2|32:6|34:2|39:5|42:4|80:13|0:6|80|78:2|0:6|78:2|79|0:12|81|0:83|50:9|0|50:5|0:22|47:4|28:3|0:3|24|25|24:2|23:3|31:3|32:5|34|39:7|42:3|80:13|0:7|78:2|0:16|79:2|0:60|83:7|0:18|50:11|0:2|50:4|0:22|47:3|28:4|26|0:3|24:3|23:3|31:3|30:5|34:2|39:6|42:5|80:12|0:2|78|0:20|79:2|0:59|83:9|0:17|50:12|0:3|50|0:25|47:3|28:3|0:4|24:3|23:3|31:3|30:4|0|34|0|34|39:5|40|42:5|80:10|78:5|0:19|79:2|0:2|79:3|0:50|83:13|0:16|50:13|0:39|24:3|22:3|31:3|30:3|0:3|34|0|39:4|40:4|42|41:2|80:7|78:9|0:22|79:3|0:48|83:14|0:16|86:12|0|86:2|0:38|24|22:6|31:2|30:3|0:4|34|0:2|39:2|40:4|41:4|80:4|78:11|0:23|79:2|0:46|83:15|0:15|86:11|0:4|86|0:39|22:8|29:3|30|0:5|34:2|0|40:4|41:4|80:3|78:13|0:3|79|0:20|79|0:47|83:14|0:13|86:12|0:45|22:8|29:4|0:6|34|0:2|40:3|41:3|80|78:16|0|78|79:2|0:20|79|0:48|83:12|82|0:12|82|86:12|0:45|22:4|21:5|29:3|0:7|34|0:2|40|41:5|78:17|79:4|0:68|83:11|82|0:12|82:3|86:12|0:44|21:9|29:2|0:12|41:3|43:2|78:4|0|78:11|79:6|0:66|83:11|82:3|0:7|82:7|86:11|0:2|86|0:45|21:6|29|0:14|43:5|78:3|0:3|78:7|79:9|0:64|83:5|0|83:6|82:3|0:5|82:9|86:14|0:45|21:4|0:18|43:4|78:2|0:5|78:5|79:9|0:69|83|0:2|83|0:2|83|82:3|0|82:14|86:12|0|86:2|0:54|10:4|11:2|0:6|43:3|78:2|0:6|78:4|79:10|0:66|83:9|0:4|82:15|86:12|0:5|89:3|0:4|89|0:24|1|2:5|0:12|10:5|11:5|0:5|43:2|78:2|0:6|78:3|79:4|0:2|79:3|0:68|83:8|82:2|0:3|82:16|86:11|0:5|89:2|0|89|0:26|1:3|2:6|3:2|0:9|10:5|11:6|0:4|43:2|78|0:7|78|79:6|0:73|83:7|82:3|0:2|82:17|86:12|0:5|89:3|0:9|89|0:11|1|0:3|1:5|2:5|3:2|0:3|6|0|10:9|11:5|12:2|0:2|12|0:10|79:7|0:72|83:7|82:23|86:11|89|0:5|89:2|0:24|1:7|4:4|3:5|6:3|7:5|10:3|11:6|12:6|0:9|79:7|0:70|85:3|83:5|82:24|86:11|89|0:30|1:8|4:5|3:4|6:3|7:4|9:2|10:2|11:5|12:8|0:7|79:10|0|79|0:66|85:4|83:3|82:25|86:10|89:2|0:30|1:7|4:6|3:4|6:4|7:2|9:3|10|9:2|11:4|12:7|13|0:7|79:2|0|79:9|0:4|79|0:62|85:5|82:27|86:8|89:3|0:31|15:6|4:7|3:3|6:3|8:3|9:7|11:2|12:6|13:4|0:10|79:8|0:63|85:3|0|85:5|82:27|86:4|0:2|86:2|89:3|0:32|15:5|5:8|3|6:3|8:5|9:5|11:3|12:4|13:5|0|14|0:7|79:4|0:2|79:6|0:13|79|0:45|85:12|82:26|86:4|0:3|89:4|0:33|15:5|5:8|6:2|8:6|9:4|11:3|12:3|13:8|14:2|0:6|79:3|0:4|79:5|0:13|79|0:44|85:13|82:26|86:5|0:15|89:2|0:23|15:4|5:8|6|8:8|9:2|11:4|12:2|13:8|14:4|0:6|79:2|0:5|79:2|0:14|79|0:42|85|0:2|85:13|82:16|84:11|86:5|0:13|89:3|0:23|15:5|5:3|16|5:3|8:10|9|11:4|18|13:9|14:5|0:13|79|0:16|79|0:39|85:18|82:4|84:23|86:3|89:2|0:6|89:5|0|89:2|0:25|15:5|5:2|16:4|17:2|8:8|18:8|13:7|14:5|0:11|79|0:18|79|0:38|85:19|84:28|86|89:3|0:6|89:5|0:28|15:5|16:6|17:8|18:12|20|13|20:3|14:4|0:11|79:3|0:15|79:3|0:41|85:16|84:29|89:4|0:7|89:3|0:29|15:4|16:6|17:8|18:12|20:7|14:3|0:8|79:5|0:60|85:14|84:30|87:2|0:10|89:2|0:29|15:3|16:6|17:8|18:13|20:7|14:2|0:8|79:6|0:59|85:15|84:30|0:12|87:2|89|0:37|17:8|18:12|20:9|0:9|79:6|0:56|85:18|84:29|0:14|87:2|0:32|16:4|0|17:5|0:3|18:12|0|20:7|0:11|79:4|0:57|85:18|84:28|0:49|16:5|0|17:4|0:3|18:12|20|0:2|20:6|0:71|85:17|84:21|0:4|84:4|87:2|0:36|88:3|0:10|16:3|0|17:3|0:4|18:12|20:2|0:2|20:5|0:68|85|0:2|85:17|84:19|0:6|84:4|87:3|0:34|88:4|0:11|16:2|0:2|17:2|0:2|18:3|0:2|18:8|19|20:2|0|20:7|0:67|85:2|0|85:17|84:13|0:4|84|0:6|84:5|87:7|0:30|88:4|0:12|16|0:2|17:2|0:3|18|0:4|18:6|19:3|20|0:2|20:5|0:67|85:21|84:12|0:12|84:4|87:9|0:29|88:4|0:24|18:5|19:3|0:5|20:8|0:64|85:20|84:11|0:15|84:3|87:8|0:31|88:4|0:3|88|0:20|18:2|19:4|0:6|20:5|0|20|0:65|85:20|84:7|0:20|84:2|87:6|0:31|88:6|0:23|18:2|19:4|0:7|20:6|0:66|85:15|0|85|0:2|85|84:6|0:20|84:2|87:7|0:5|87:3|0:22|88:8|0:2|88|0:21|19:4|0:7|20:6|0:64|85:2|0|85:13|0:5|85|84:9|0:17|84:2|87:3|0|87|0:7|87:4|0:21|88:3|0:3|88:5|0:21|19:5|0:8|20:4|0:67|85:12|0:6|84:11|0:17|87:2|0:11|87:2|0:29|88:5|0:15|18|19|0:2|19:4|0:2|19:3|0:6|20:4|0:67|85:12|0:8|84:8|0:18|87|0:11|87:2|0:30|88:3|0:6|88|0:14|19:2|0:4|19:2|0:7|20:4|0:67|85:9|0:12|84:2|0:2|84:2|0:33|87|0:29|88:2|0:3|88|0:2|88:4|0:17|19:2|0:8|20:6|0:66|85:8|0:50|87:5|0:26|88:2|0|88:9|0:17|19:3|0:12|20|0:67|85:4|0|85|0:50|87:5|0:27|88:2|0|88:6|0:20|19:3|0:79|85:2|0:43|87:2|0:8|87:4|0:2|87|0:27|88:8|0:21|19:4|0:78|85:3|0:41|87:3|0:9|87:2|0:31|88:6|0:23|19:4|0:78|85|0:43|87:4|0:41|88:7|0:23|19:2|0:124|87:3|0:41|88:7|0:150|87|0:41|88:5|0|88:3|0:33|88:2|0:10|88:2|0:4|88|0:70|84:2|0:66|88:7|0:2|88|0:31|88:5|0:8|88:2|0:5|88|0:71|84:3|0:64|88:7|0:3|88|0:30|88:5|0:8|88:2|0:76|84|0:2|84:2|0:64|88|0|88:2|0|88|0:37|88|0:203|88:2|0:195|88:6|0:79|84|0:113|88:7|0:82|84:3|0:108|88:7|0:83|84|0:108|88:8|0:80|84|0|84:2|0:109|88:4|0|88:3|0:78|84:6|0:107|88|0:2|88|0:84|84:2|0:112|88:2|0:461", "districts": [["中西區"], ["灣仔"], ["東區"], ["南區"], ["油尖旺"], ["深水埗"], ["九龍城"], ["黃大仙"], ["觀塘"], ["葵青"], ["荃灣"], ["屯門"], ["元朗"], ["北區"], ["大埔"], ["沙田"], ["西貢"], ["離島"]], "subs": [[0, "堅尼地城"], [0, "上環"], [0, "中環"], [0, "半山"], [0, "山頂"], [1, "灣仔"], [1, "銅鑼灣"], [1, "跑馬地"], [1, "大坑"], [2, "北角"], [2, "鰂魚涌"], [2, "筲箕灣"], [2, "柴灣"], [2, "小西灣"], [3, "薄扶林"], [3, "香港仔"], [3, "黃竹坑"], [3, "淺水灣"], [3, "赤柱"], [3, "石澳"], [4, "尖沙咀"], [4, "油麻地"], [4, "旺角"], [4, "大角咀"], [5, "深水埗"], [5, "長沙灣"], [5, "石硤尾"], [5, "美孚"], [6, "紅磡"], [6, "土瓜灣"], [6, "何文田"], [6, "九龍城"], [6, "九龍塘"], [6, "啟德"], [7, "黃大仙"], [7, "鑽石山"], [7, "慈雲山"], [7, "樂富"], [8, "牛頭角"], [8, "觀塘"], [8, "藍田"], [8, "秀茂坪"], [8, "油塘"], [9, "葵涌"], [9, "荔景"], [9, "青衣"], [9, "貨櫃碼頭"], [10, "荃灣"], [10, "深井"], [10, "馬灣"], [10, "大帽山"], [11, "屯門市中心"], [11, "掃管笏"], [11, "龍鼓灘"], [11, "藍地"], [12, "元朗"], [12, "天水圍"], [12, "錦田"], [12, "流浮山"], [12, "八鄉"], [12, "米埔"], [13, "上水"], [13, "粉嶺"], [13, "沙頭角"], [13, "打鼓嶺"], [13, "古洞"], [14, "大埔"], [14, "大埔滘"], [14, "林村"], [14, "船灣"], [14, "西貢北"], [15, "沙田"], [15, "大圍"], [15, "火炭"], [15, "馬鞍山"], [15, "石門"], [16, "西貢市"], [16, "將軍澳"], [16, "清水灣"], [16, "坑口"], [16, "西貢郊野"], [17, "東涌"], [17, "機場"], [17, "南大嶼"], [17, "大澳"], [17, "愉景灣"], [17, "長洲"], [17, "南丫島"], [17, "坪洲"]], "bbox": [113.83, 114.45, 22.15, 22.57]};</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+const D=window.HKDATA, W=D.W, H=D.H;
+const grid=new Int16Array(W*H);{let p=0;for(const t of D.rle.split('|')){const [a,b]=t.split(':');const v=+a-1,n=b?+b:1;for(let i=0;i<n;i++)grid[p++]=v}}
+const subDist=D.subs.map(s=>s[0]);
+// distance to sea
+const dist=new Float32Array(W*H).fill(1e9);const q=[];
+for(let i=0;i<W*H;i++)if(grid[i]<0){dist[i]=0;q.push(i)}
+for(let h=0;h<q.length;h++){const i=q[h],x=i%W,y=(i/W)|0;for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,y>0?i-W:-1,y<H-1?i+W:-1]){if(j>=0&&dist[j]>dist[i]+1){dist[j]=dist[i]+1;q.push(j)}}}
+const [L0,L1,A0,A1]=D.bbox, cellKm=(L1-L0)*Math.cos(22.36*Math.PI/180)*111/W;
+const PEAKS=[["大帽山",114.124,22.411,957,2.6],["鳳凰山",113.920,22.258,934,2.0],["大東山",113.934,22.268,869,1.6],["馬鞍山",114.237,22.405,702,1.7],["八仙嶺",114.205,22.497,639,2.0],["飛鵝山",114.226,22.338,602,1.2],["雞公嶺",114.085,22.475,585,1.8],["青山",113.958,22.408,583,1.8],["大老山",114.208,22.355,577,1.2],["大刀屻",114.120,22.455,566,1.5],["太平山",114.145,22.272,552,1.1],["針山",114.153,22.383,532,1.1],["柏架山",114.218,22.268,532,1.1],["獅子山",114.187,22.352,495,0.9],["蚺蛇尖",114.373,22.427,468,1.4],["筆架山",114.170,22.345,457,0.9],["紫羅蘭山",114.190,22.252,433,0.9],["雞公山",114.295,22.390,399,1.4],["南丫島",114.130,22.212,353,1.0]];
+const toCell=(lon,lat)=>[(lon-L0)/(L1-L0)*W-0.5,(A1-lat)/(A1-A0)*H-0.5];
+const pk=PEAKS.map(([n,lon,lat,m,s])=>{const [cx,cy]=toCell(lon,lat);return{n,cx,cy,h:m/100*0.9,s:s/cellKm}});
+const hash=(x,y)=>{let h=(x*374761393+y*668265263)|0;h=(h^(h>>>13))*1274126177;return((h^(h>>>16))>>>0)/4294967296};
+const hgt=new Float32Array(W*H);
+for(let i=0;i<W*H;i++){if(grid[i]<0)continue;const x=i%W,y=(i/W)|0;let h=0.5+Math.min(dist[i],4)*0.22;let m=0;
+  for(const p of pk){const dx=x-p.cx,dy=y-p.cy,d2=dx*dx+dy*dy;if(d2<p.s*p.s*16)m+=p.h*Math.exp(-d2/(2*p.s*p.s))}
+  h+=m*Math.min(1,dist[i]/2.5)+(dist[i]>3?hash(x,y)*0.35:0);hgt[i]=Math.max(0.5,Math.round(h*2)/2)}
+// colours
+const distCol=D.districts.map((_,k)=>new THREE.Color().setHSL(((k*137.508)%360)/360,0.38,0.56));
+const RED=new THREE.Color(0xE0473F),ROCK=new THREE.Color(0x9C9886);
+const captured=new Set();
+const cells=[];for(let i=0;i<W*H;i++)if(grid[i]>=0)cells.push(i);
+const inst=new Int32Array(W*H).fill(-1);cells.forEach((c,k)=>inst[c]=k);
+function shadeOf(i){const s=grid[i],x=i%W,y=(i/W)|0;let border=1;
+  for(const j of [x>0?i-1:-1,x<W-1?i+1:-1,y>0?i-W:-1,y<H-1?i+W:-1]){if(j<0||grid[j]<0)continue;if(subDist[grid[j]]!==subDist[s])border=Math.min(border,0.55);else if(grid[j]!==s)border=Math.min(border,0.8)}
+  return border}
+const tmp=new THREE.Color();
+function colorCell(i,hl){const s=grid[i];
+  if(captured.has(s)){tmp.copy(RED)}else{tmp.copy(distCol[subDist[s]]);tmp.offsetHSL(0,0,(s%2?0.045:-0.035));const h=hgt[i];if(h>4)tmp.lerp(ROCK,Math.min(0.45,(h-4)/10))}
+  tmp.multiplyScalar(shadeOf(i));if(hl)tmp.lerp(new THREE.Color(0xffffff),0.35);return tmp}
+// three
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setClearColor(0x0E1B2C);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x0E1B2C,180,330);
+const camera=new THREE.PerspectiveCamera(38,1,0.5,800);
+const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.maxPolarAngle=1.3;controls.minDistance=25;controls.maxDistance=260;controls.target.set(0,0,4);
+scene.add(new THREE.HemisphereLight(0xE6EEFF,0x2A2418,0.8));
+const sun=new THREE.DirectionalLight(0xFFF0D8,1.0);sun.position.set(-70,110,50);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);
+Object.assign(sun.shadow.camera,{left:-120,right:120,top:90,bottom:-90,near:10,far:320});sun.shadow.bias=-0.0006;scene.add(sun);
+const geo=new THREE.BoxGeometry(1,1,1);geo.translate(0,0.5,0);
+const land=new THREE.InstancedMesh(geo,new THREE.MeshStandardMaterial({roughness:0.9,flatShading:true}),cells.length);
+land.castShadow=land.receiveShadow=true;
+const m4=new THREE.Matrix4();
+cells.forEach((i,k)=>{const x=i%W,y=(i/W)|0;m4.makeScale(1,hgt[i],1);m4.setPosition(x-W/2+0.5,0,y-H/2+0.5);land.setMatrixAt(k,m4);land.setColorAt(k,colorCell(i,false))});
+scene.add(land);
+const SEA=new THREE.Color(0x1C3554);
+const meshes={};
+function buildTerrain(smooth){
+  let hh=new Float32Array(W*H);for(let i=0;i<W*H;i++)hh[i]=grid[i]<0?-0.9:hgt[i]+(smooth?0:(hash(i%W,(i/W)|0)-0.5)*0.35);
+  if(smooth){for(let pass=0;pass<3;pass++){const n=new Float32Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++){let s=0,c=0;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;s+=hh[Y*W+X];c++}n[y*W+x]=s/c}hh=n}
+    for(let i=0;i<W*H;i++)if(grid[i]>=0)hh[i]=Math.max(hh[i],0.55)}
+  const g=new THREE.PlaneGeometry(W-1,H-1,W-1,H-1);g.rotateX(-Math.PI/2);
+  const pos=g.attributes.position.array;for(let k=0;k<W*H;k++)pos[k*3+1]=hh[k];
+  const col=new Float32Array(W*H*3);g.setAttribute('color',new THREE.BufferAttribute(col,3));
+  for(let i=0;i<W*H;i++){const c=grid[i]<0?SEA:colorCell(i,false);col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b}
+  g.computeVertexNormals();
+  const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,flatShading:!smooth,roughness:smooth?0.75:0.95}));
+  m.castShadow=m.receiveShadow=true;m.visible=false;scene.add(m);return m}
+let style='voxel';
+function activeObj(){return style==='voxel'?land:meshes[style]}
+function setStyle(s){style=s;if(s!=='voxel'&&!meshes[s])meshes[s]=buildTerrain(s==='smooth');
+  land.visible=s==='voxel';for(const k in meshes)meshes[k].visible=k===s;
+  document.querySelectorAll('[data-style]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.style===s))}
+document.querySelectorAll('[data-style]').forEach(b=>b.onclick=()=>setStyle(b.dataset.style));
+const wg=new THREE.PlaneGeometry(W+160,H+160,140,110);wg.rotateX(-Math.PI/2);
+const wpos=wg.attributes.position,wbase=Float32Array.from(wpos.array);
+const water=new THREE.Mesh(wg,new THREE.MeshStandardMaterial({color:0x24507F,roughness:0.35,metalness:0.15,flatShading:true,transparent:true,opacity:0.94}));
+water.position.y=0.35;water.receiveShadow=true;scene.add(water);
+// labels
+const labelsEl=document.getElementById('labels'),labels=[];
+function addLabel(text,cls,x,y,z){const el=document.createElement('div');el.className='lbl '+cls;el.textContent=text;labelsEl.appendChild(el);labels.push({el,v:new THREE.Vector3(x,y,z)})}
+D.districts.forEach((d,k)=>{let sx=0,sy=0,n=0,mh=0;cells.forEach(i=>{if(subDist[grid[i]]===k){sx+=i%W;sy+=(i/W)|0;n++;mh=Math.max(mh,hgt[i])}});
+  let bx=sx/n,by=sy/n,best=null,bd=1e9;cells.forEach(i=>{if(subDist[grid[i]]!==k)return;const d=(i%W-bx)**2+(((i/W)|0)-by)**2;if(d<bd){bd=d;best=i}});
+  addLabel(d[0],'dist',best%W-W/2+0.5,hgt[best]+2.2,((best/W)|0)-H/2+0.5)});
+["大帽山","獅子山","太平山","鳳凰山","馬鞍山","八仙嶺"].forEach(n=>{const p=pk.find(o=>o.n===n);const i=Math.round(p.cy)*W+Math.round(p.cx);addLabel(n,'peak',p.cx-W/2+0.5,(hgt[i]||2)+1.2,p.cy-H/2+0.5)});
+// interaction
+const tip=document.getElementById('tip'),cnt=document.getElementById('cnt');
+const ray=new THREE.Raycaster(),mv=new THREE.Vector2();let hoverSub=-1,down=null;
+function pick(e){const r=canvas.getBoundingClientRect();mv.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mv,camera);
+  const h=ray.intersectObject(activeObj())[0];if(!h)return -1;if(style==='voxel')return cells[h.instanceId];
+  const cx=Math.round(h.point.x+(W-1)/2),cy=Math.round(h.point.z+(H-1)/2);let best=-1,bd=9;
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=cx+dx,Y=cy+dy;if(X<0||Y<0||X>=W||Y>=H)continue;const i=Y*W+X;if(grid[i]>=0&&dx*dx+dy*dy<bd){bd=dx*dx+dy*dy;best=i}}return best}
+function paintCell(i,k,hl){const c=colorCell(i,hl);land.setColorAt(k,c);for(const key in meshes){const a=meshes[key].geometry.attributes.color.array;a[i*3]=c.r;a[i*3+1]=c.g;a[i*3+2]=c.b}}
+function flush(){land.instanceColor.needsUpdate=true;for(const key in meshes)meshes[key].geometry.attributes.color.needsUpdate=true}
+function paintSub(s,hl){if(s<0)return;cells.forEach((i,k)=>{if(grid[i]===s)paintCell(i,k,hl)});flush()}
+function describe(s){const d=D.districts[subDist[s]][0];return `<span class="d">${d}</span>${D.subs[s][1]}${captured.has(s)?' · 已佔領':''}`}
+canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const c=pick(e),s=c<0?-1:grid[c];if(s!==hoverSub){paintSub(hoverSub,false);hoverSub=s;paintSub(s,true)}if(s>=0)tip.innerHTML=describe(s)});
+canvas.addEventListener('pointerdown',e=>{down=[e.clientX,e.clientY]});
+canvas.addEventListener('pointerup',e=>{if(!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>6)return;const c=pick(e);if(c<0)return;const s=grid[c];
+  captured.has(s)?captured.delete(s):captured.add(s);paintSub(s,e.pointerType==='mouse');cnt.textContent=captured.size;tip.innerHTML=describe(s)});
+document.getElementById('reset').onclick=()=>{captured.clear();cells.forEach((i,k)=>paintCell(i,k,false));flush();cnt.textContent=0;tip.textContent='已重設，撳任何地區佔領'};
+let pixel=false;const pixBtn=document.getElementById('pix');
+pixBtn.onclick=()=>{pixel=!pixel;pixBtn.setAttribute('aria-pressed',pixel);canvas.classList.toggle('px',pixel);resize()};
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;
+  renderer.setPixelRatio(pixel?0.33:Math.min(devicePixelRatio||1,2));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+const aspect0=canvas.clientWidth/Math.max(1,canvas.clientHeight),far=aspect0<1?1.9/Math.max(aspect0,0.5):1;
+camera.position.set(0,105*far,92*far);
+addEventListener('resize',resize);resize();
+document.getElementById('loading').remove();
+const v=new THREE.Vector3(),clock=new THREE.Clock();
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function frame(){requestAnimationFrame(frame);const t=clock.getElapsedTime();
+  if(!reduce){const a=wpos.array;for(let k=0;k<a.length;k+=3){a[k+1]=Math.sin(t*1.3+wbase[k]*0.22+wbase[k+2]*0.17)*0.18+Math.sin(t*0.7-wbase[k]*0.09)*0.1}wpos.needsUpdate=true}
+  controls.update();renderer.render(scene,camera);
+  const w=canvas.clientWidth,h=canvas.clientHeight;
+  for(const L of labels){v.copy(L.v).project(camera);const on=v.z<1&&Math.abs(v.x)<1.05&&Math.abs(v.y)<1.05;L.el.style.display=on?'':'none';if(on)L.el.style.transform=`translate(${(v.x+1)/2*w}px,${(1-v.y)/2*h}px) translate(-50%,-100%)`}}
+frame();
+</script>
