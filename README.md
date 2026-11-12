@@ -26,3 +26,6 @@
 3. ✋ 移動／改地：撳一塊街區，改類型（可買／農地／地產商／公園／政府…）、名稱、地產商、市值；「同另一塊合併」再撳隔籬嗰塊
 4. 編輯會自動儲存喺瀏覽器；撳「⬇ 匯出」下載 `yuenlong-edits.json`，傳俾 Claude
 5. Claude 跑 `python3 scripts/build_html.py yuenlong yuenlong-edits.json`：編輯併入 `edits/yuenlong.json`（總檔），重新生成原型頁。生成數據（`data/*3.json`）永遠唔會手改，所以重新跑地圖程式都唔會冇咗你嘅編輯
+
+## 建築物數據
+`scripts/csdi_buildings.py` 由地政總署 CSDI 空間數據共享平台（Building 數據集，WFS）下載建築物輪廓、中文名同層數，存喺 `data/<區>-bld.json`。CSDI 條款容許商業同非商業用途，頁面右下角已註明來源。`build_html.py` 會自動將建築物歸入街區，並用政府名稱補返街區名。

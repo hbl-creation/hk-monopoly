@@ -49,6 +49,30 @@ for a_c, b_c in E['merge']:
     a['m2'] += b['m2']; a['p'] += b['p']; a['r'] = round(a['p'] * 0.06, 1)
     rp = u.representative_point(); a['c'] = [round(rp.x, 1), round(rp.y, 1)]
     gone.add(b['id'])
+# government building footprints: attach to lots, fill in names players can recognise
+bp = f'{ROOT}/data/{key}-bld.json'
+if os.path.exists(bp):
+    from shapely.strtree import STRtree
+    import re
+    live = [l for l in L if l['id'] not in gone]
+    tree = STRtree([Polygon(l['g']) for l in live])
+    names = collections.defaultdict(list)
+    B = json.load(open(bp))['b']
+    for b in B:
+        xy = b[0]; poly = Polygon(list(zip(xy[0::2], xy[1::2]))); c = poly.representative_point()
+        hits = [live[i] for i in tree.query(c) if Polygon(live[i]['g']).contains(c)]
+        b.append(hits[0]['id'] if hits else -1)
+        if hits and b[1]:
+            base = re.sub(r'\s*(第?[0-9０-９A-ZＡ-Ｚ一二三四五六七八九十]+(座|期|號舖))+$', '', b[1]).strip() or b[1]
+            names[hits[0]['id']].append((poly.area, base))
+    for l in live:
+        ns = []
+        for _, n in sorted(names[l['id']], reverse=True):
+            if n not in ns: ns.append(n)
+        if not ns: continue
+        if not l['n'] and l['k'] in ('buy', 'dev'): l['n'] = ns[0]
+        l['also'] = [n for n in ns if n != l['n']][:4]
+    data['bld'] = B
 for k, l, e in targets:
     if l is None: miss.append(k)
     elif l['id'] not in gone: apply(l, e)
@@ -62,6 +86,7 @@ for z in data['blocks']:
     ks = collections.Counter(keep[i]['k'] for i in z['lots'])
     if z['lots']: z['k'] = 'buy' if ks['buy'] or ks['dev'] else ks.most_common(1)[0][0]
 data['lots'] = keep
+for b in data.get('bld', []): b[3] = remap.get(b[3], -1)
 data['key'] = key
 data['edits'] = {'v': 1, 'lots': E['lots'], 'merge': [], 'erase': E['erase']}  # merges are baked in
 

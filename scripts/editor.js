@@ -52,6 +52,20 @@ document.body.insertAdjacentHTML('beforeend',`<button id="edBtn">✎ 編輯地�
  <div class="row"><button class="pri" id="edOk">套用</button><button id="edMerge">同另一塊合併</button><button id="edX">收起</button></div>
 </div>`);
 const msg=t=>{$('edMsg').textContent=t};
+// government building footprints (Lands Department via CSDI): drawn from street level, names at closest zoom
+const gBld=el('g',{'pointer-events':'none'});svg.insertBefore(gBld,gBO);let gBN=null,bldBuilt=false;
+function buildBld(){if(bldBuilt||!M.bld)return;bldBuilt=true;let d='';
+  M.bld.forEach(b=>{const q=b[0];d+='M'+q[0]+' '+q[1];for(let i=2;i<q.length;i+=2)d+='L'+q[i]+' '+q[i+1];d+='Z'});
+  el('path',{d,fill:'rgba(70,60,45,.16)',stroke:'rgba(70,60,45,.45)','stroke-width':.7,'vector-effect':'non-scaling-stroke'},gBld);
+  gBN=el('g',{'pointer-events':'none'});svg.insertBefore(gBN,gNM);const seen={};
+  M.bld.filter(b=>b[1]).forEach(b=>{const q=b[0];let x=0,y=0;const n=q.length/2;for(let i=0;i<q.length;i+=2){x+=q[i];y+=q[i+1]}
+    x/=n;y/=n;const nm=b[1].replace(/\s*(第?[0-9０-９A-ZＡ-Ｚ一二三四五六七八九十]+(座|期))+$/,'')||b[1];const near=(seen[nm]||[]).some(([a,c])=>Math.hypot(a-x,c-y)<45);if(near)return;(seen[nm]=seen[nm]||[]).push([x,y]);
+    const t=el('text',{x,y,class:'bn'},gBN);t.textContent=nm})}
+document.head.insertAdjacentHTML('beforeend','<style>.bn{fill:#4A4336;text-anchor:middle;dominant-baseline:middle;paint-order:stroke;stroke:rgba(255,255,255,.85);stroke-width:2.5px;stroke-linejoin:round;font-weight:500}#attrib{position:fixed;right:8px;bottom:4px;z-index:5;font-size:10px;color:#6B6F76;background:rgba(255,255,255,.7);padding:1px 6px;border-radius:6px}</style>');
+document.body.insertAdjacentHTML('beforeend','<div id="attrib">建築物數據：地政總署（CSDI 空間數據共享平台）· 道路：© OpenStreetMap</div>');
+const _ap=apply;apply=function(){_ap();const u=vb.w/Math.max(1,svg.getBoundingClientRect().width);if(LOD>=2)buildBld();
+  gBld.style.display=LOD>=2?'':'none';if(gBN){gBN.style.display=LOD===3&&u<0.35?'':'none';gBN.setAttribute('font-size',8.5*u)}};
+apply();
 // road mask: black strokes hide roads, white strokes bring them back (later strokes win)
 const BIG=6000,mk=el('mask',{id:'rmask',maskUnits:'userSpaceOnUse',x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG},defs);
 el('rect',{x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG,fill:'#fff'},mk);
