@@ -1,0 +1,282 @@
+<title>元朗大富翁 · 第一章</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@700;900&family=Noto+Sans+HK:wght@400;500;700&display=swap">
+<style>
+/* Layout: full-screen street-directory map of Central with three zoom levels (街區 → 地段 → 細節); HUD floats top, deed/bank card + month button float bottom */
+:root{
+  --sea:#BCD7E3; --land:#E9E6DD; --ink:#1D2530; --dim:#5E6672; --line:rgba(29,37,48,.14); --panel:#FFFFFF;
+  --me:#D33F35; --rival:#2E5C9A; --gold:#B78716; --dev:#5B3F8C;
+  --park:#A9D18E; --gov:#C3C6CC; --rel:#CDB6E4; --comm:#B8D3EC; --mark:#F2C46B; --bank:#1F7A66;
+  --display:"Noto Serif HK","Songti TC",serif; --body:"Noto Sans HK","PingFang HK","Microsoft JhengHei",sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--sea);color:var(--ink);font-family:var(--body);overflow:hidden}
+#app{position:relative;height:100%;overflow:hidden}
+svg{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
+svg.drag{cursor:grabbing}
+.blk{stroke:#CFC9B9;stroke-width:1.2;cursor:zoom-in}
+.blk:hover{stroke:#6E6757;stroke-width:3}
+.lot{stroke:#CFC9B9;stroke-width:1.2;cursor:pointer}
+.lot:hover{stroke:#6E6757;stroke-width:2}
+.lot.me{fill:var(--me)!important;stroke:#8E241D}
+.lot.rv{fill:var(--rival)!important;stroke:#173A6A}
+.bo{fill:none;stroke:#8F8775;stroke-width:1.6;pointer-events:none}
+.nm{font-family:var(--display);font-weight:900;paint-order:stroke;stroke:#fff;stroke-width:.32em;stroke-linejoin:round;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.ln{font-family:var(--body);font-weight:500;fill:#3B3426;paint-order:stroke;stroke:rgba(255,255,255,.92);stroke-width:.3em;stroke-linejoin:round;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.rl{font-family:var(--body);font-weight:500;fill:#4A4232;paint-order:stroke;stroke:rgba(255,255,255,.95);stroke-width:.35em;stroke-linejoin:round;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.al{font-family:var(--display);font-weight:900;fill:rgba(29,37,48,.5);text-anchor:middle;dominant-baseline:central;pointer-events:none;letter-spacing:.2em}
+.top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;pointer-events:none;
+  padding-block:calc(12px + env(safe-area-inset-top,0px)) 0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.card{pointer-events:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(29,37,48,.16)}
+.brand{padding:10px 14px;max-width:min(380px,100%)}
+h1{font-family:var(--display);font-weight:900;font-size:21px;margin:0;letter-spacing:.06em}
+.month{font-size:12px;color:var(--dim);margin-top:2px;font-variant-numeric:tabular-nums;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lod{font-size:11px;border:1px solid var(--line);border-radius:999px;padding:1px 8px;color:var(--ink)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:7px;font-size:11px;color:var(--dim)}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.12)}
+.players{display:flex;gap:8px;flex-wrap:wrap}
+.pl{padding:8px 12px;display:grid;grid-template-columns:auto auto;column-gap:10px;row-gap:1px;align-items:baseline;font-variant-numeric:tabular-nums}
+.pl .who{grid-column:1/3;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pl .who i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.pl .k{font-size:11px;color:var(--dim)} .pl .v{font-size:15px;font-weight:700;text-align:right}
+.pl .v.debt.on{color:var(--me)}
+.bottom{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;pointer-events:none;
+  padding-block:0 calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.deed{width:min(340px,100%);overflow:hidden}
+.deed-h{padding:10px 14px 9px;color:#fff;background:var(--gold)}
+.deed-h .tag{font-size:11px;letter-spacing:.16em;opacity:.9}
+.deed-h .st{font-family:var(--display);font-weight:900;font-size:19px;line-height:1.25;text-wrap:balance}
+.deed-h .sub{font-size:12px;margin-top:2px;opacity:.95}
+.deed-b{padding:10px 14px 12px;display:grid;gap:4px;font-size:13px}
+.row{display:flex;justify-content:space-between;gap:10px;font-variant-numeric:tabular-nums}
+.row span:first-child{color:var(--dim)} .row b{font-weight:700}
+.note{margin-top:4px;font-size:12px;color:var(--dim);line-height:1.55}
+.act{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+button{font:500 14px var(--body);border-radius:999px;padding:9px 16px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+button.primary{background:var(--me);border-color:var(--me);color:#fff}
+button.bankbtn{background:var(--bank);border-color:var(--bank);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none;min-width:0}
+.log{padding:9px 12px;font-size:12.5px;max-width:340px;display:grid;gap:4px}
+.log div{line-height:1.5} .log .new{font-weight:700} .log .old{color:var(--dim)}
+.next{pointer-events:auto;font-family:var(--display);font-weight:900;font-size:17px;padding:12px 22px;background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:0 10px 28px rgba(29,37,48,.28)}
+.zoom{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:46%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px}
+.zoom button{width:38px;height:38px;padding:0;font-size:18px;box-shadow:0 4px 14px rgba(29,37,48,.15)}
+#end{position:absolute;inset:0;background:rgba(29,37,48,.55);display:grid;place-items:center;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#end .card{padding:22px;max-width:360px;text-align:center}
+#end h2{font-family:var(--display);font-weight:900;font-size:26px;margin:0 0 8px}
+#end p{margin:0 0 14px;color:var(--dim);line-height:1.6}
+@media (max-width:620px){
+  .deed{width:100%} .right{width:100%;flex-direction:row;align-items:flex-end;justify-content:space-between} .log{max-width:none;flex:1;min-width:0;font-size:12px}
+  h1{font-size:18px} .legend{font-size:10.5px} .zoom{top:42%} .deed-b{padding:8px 12px 10px} .deed-h .st{font-size:17px}
+}
+@media (prefers-reduced-motion:no-preference){.lot,.blk{transition:fill .25s}}
+</style>
+<div id="app">
+  <svg id="map" role="img" aria-label="元朗市及周邊農地街道地圖，縮細睇分區，放大逐個街區買賣"></svg>
+  <div class="top">
+    <div class="card brand"><h1>元朗大富翁</h1><div class="month"><span id="month"></span><span class="lod" id="lod"></span></div>
+      <div class="legend">
+        <span><i style="background:#FBFAF6"></i>可買</span><span><i style="background:#DDE3B4"></i>農地</span><span><i style="background:var(--dev)"></i>大地產商</span><span><i style="background:var(--park)"></i>公園</span><span><i style="background:var(--gov)"></i>政府</span>
+        <span><i style="background:var(--rel)"></i>宗教</span><span><i style="background:var(--comm)"></i>學校醫院</span><span><i style="background:var(--mark)"></i>地標</span><span><i style="background:var(--bank)"></i>銀行</span>
+      </div>
+    </div>
+    <div class="players">
+      <div class="card pl"><div class="who"><i style="background:var(--me)"></i>你</div><span class="k">現金</span><span class="v" id="meCash"></span><span class="k">貸款</span><span class="v debt" id="meDebt"></span><span class="k">身家</span><span class="v" id="meWorth"></span></div>
+      <div class="card pl"><div class="who"><i style="background:var(--rival)"></i>金牛地產</div><span class="k">現金</span><span class="v" id="rvCash"></span><span class="k">身家</span><span class="v" id="rvWorth"></span></div>
+    </div>
+  </div>
+  <div class="zoom"><button id="zin" aria-label="放大">＋</button><button id="zout" aria-label="縮小">－</button><button id="fit" aria-label="睇全區" style="font-size:12px">全區</button></div>
+  <div class="bottom">
+    <div class="card deed" id="deed" hidden>
+      <div class="deed-h" id="dh"><div class="tag" id="dTag"></div><div class="st" id="dSt"></div><div class="sub" id="dSub"></div></div>
+      <div class="deed-b" id="dBody"></div>
+    </div>
+    <div class="right">
+      <div class="card log" id="log" aria-live="polite"></div>
+      <button class="next" id="next">下個月 ›</button>
+    </div>
+  </div>
+  <div id="end" hidden><div class="card"><h2 id="endT"></h2><p id="endP"></p><button class="primary" id="again">再玩一局</button></div></div>
+</div>
+<script>
+const M=__DATA__;
+const $=id=>document.getElementById(id);
+const NS='http://www.w3.org/2000/svg',svg=$('map');
+const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e};
+const pts=a=>a.map(p=>p[0]+','+p[1]).join(' ');
+const KIND={buy:{fill:'#FBFAF6',tag:'可買街區'},dev:{fill:'#5B3F8C',tag:'大地產商物業',head:'#5B3F8C'},park:{fill:'#A9D18E',tag:'公園及休憩用地',col:'#3E7A2C',head:'#5E9A47'},gov:{fill:'#C3C6CC',tag:'政府用地',col:'#4A505A',head:'#6B717C'},
+  rel:{fill:'#CDB6E4',tag:'宗教場所',col:'#5B3C80',head:'#7A58A3'},comm:{fill:'#B8D3EC',tag:'學校及醫院',col:'#2D5A86',head:'#4A78A6'},
+  farm:{fill:'#DDE3B4',tag:'農地（牛屎地）',col:'#5E6A1F',head:'#7C8A2E'},mark:{fill:'#F2C46B',tag:'地標',col:'#7A4E00',head:'#B78716'},bank:{fill:'#1F7A66',tag:'銀行',col:'#0F4D3F',head:'#1F7A66'}};
+const AREA_TINT={'元朗市中心':'#FBF6EC','元朗舊墟':'#F8F3EA','朗屏':'#F4F6F0','水邊圍':'#F1F3F5','南邊圍':'#F6F1F1','屏山':'#F3F5F3','元朗東':'#F5F4EF'};
+const FARM='#DDE3B4';M.blocks.forEach(b=>{const f=b.lots.filter(i=>M.lots[i].f).length;b.f=f*2>b.lots.length?1:0});
+const baseFill=o=>o.f?FARM:(AREA_TINT[o.a]||'#FBFAF6');
+const [bx0,by0,bx1,by1]=M.bounds;
+const defs=el('defs',{});const hp=el('pattern',{id:'hatch',width:8,height:8,patternUnits:'userSpaceOnUse',patternTransform:'rotate(45)'},defs);
+el('rect',{width:8,height:8,fill:'#C3C6CC'},hp);el('line',{x1:0,y1:0,x2:0,y2:8,stroke:'#AEB2B9','stroke-width':3},hp);
+el('rect',{x:bx0-4000,y:by0-4000,width:bx1-bx0+8000,height:by1-by0+8000,fill:'#BCD7E3'});
+const gLand=el('g',{});M.land.forEach(rings=>el('path',{d:rings.map(r=>'M'+pts(r)+'Z').join(''),fill:'#E9E6DD','fill-rule':'evenodd'},gLand));
+const kindFill=k=>k==='gov'?'url(#hatch)':KIND[k].fill;
+// level 1: street blocks (always built)
+const gBlk=el('g',{}),blkEl=[];
+M.blocks.forEach(b=>{blkEl[b.id]=el('polygon',{points:pts(b.g),class:'blk',fill:b.k==='buy'?baseFill(b):kindFill(b.k),'data-b':b.id},gBlk)});
+// levels 2-3: lots + outlines, built lazily on first zoom-in
+const gLot=el('g',{}),gBO=el('g',{}),lotEl=[];let lotsBuilt=false;
+function buildLots(){if(lotsBuilt)return;lotsBuilt=true;
+  M.lots.forEach(l=>{lotEl[l.id]=el('polygon',{points:pts(l.g),class:'lot',fill:l.k==='buy'?baseFill(l):kindFill(l.k),'data-id':l.id},gLot)});
+  M.blocks.forEach(b=>{if(b.k==='buy')el('polygon',{points:pts(b.g),class:'bo'},gBO)});M.lots.forEach(l=>paintLot(l.id))}
+// roads in three groups so far zoom draws only the main ones
+const W={6:18,5.5:10,5:14,4.5:9,4:11,3.5:7,3:9,2.5:6,2:6,1.5:5,1:4,0:3};
+const rG={major:el('g',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round','pointer-events':'none'}),minor:null,foot:null};
+function drawRoads(list,g){const cas=el('g',{},g),fil=el('g',{},g);
+  list.sort((a,b)=>(a.b-b.b)||(a.k-b.k)).forEach(r=>{const w=W[r.k]||6,major=r.k>=5,mid=r.k>=4,foot=r.k===0,d=r.l.map(l=>'M'+pts(l)).join('');
+    if(foot){el('path',{d,stroke:'#9A9484','stroke-width':w+2,opacity:.55},fil);el('path',{d,stroke:'#F3F1EA','stroke-width':w},fil);return}
+    el('path',{d,stroke:major?'#B78716':mid?'#D4B460':'#C9C4B6','stroke-width':w+3},r.b?fil:cas);
+    el('path',{d,stroke:major?'#F2C14E':mid?'#F8E3A1':r.k===1?'#F6F0E4':'#FFFFFF','stroke-width':w},fil)})}
+const roadsMajor=M.roads.filter(r=>r.k>=4),roadsMinor=M.roads.filter(r=>r.k>=1&&r.k<4),roadsFoot=M.roads.filter(r=>r.k===0);
+function buildMinor(){if(rG.minor)return;rG.minor=el('g',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round','pointer-events':'none'});svg.insertBefore(rG.minor,rG.major);drawRoads(roadsMinor,rG.minor)}
+function buildFoot(){if(rG.foot)return;rG.foot=el('g',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round','pointer-events':'none'});svg.insertBefore(rG.foot,gAL);drawRoads(roadsFoot,rG.foot)}
+drawRoads(roadsMajor,rG.major);
+const gAL=el('g',{});M.areas.forEach(([n,x,y])=>{if(M.blocks.some(b=>b.a===n&&b.k==='buy')){const t=el('text',{x,y,class:'al'},gAL);t.textContent=n}});
+const gRL=el('g',{});M.labels.forEach(([n,x,y,a,k])=>{const t=el('text',{x,y,class:'rl',transform:`rotate(${a} ${x} ${y})`,'data-k':k},gRL);t.textContent=n});
+const gSel=el('polygon',{fill:'none',stroke:'#1D2530','stroke-width':3,'stroke-dasharray':'6 4','vector-effect':'non-scaling-stroke','pointer-events':'none',points:''});
+const gNM=el('g',{});const seen={};
+[...M.lots].filter(l=>l.k!=='buy'&&l.n).sort((a,b)=>b.m2-a.m2).forEach(l=>{if(seen[l.n])return;seen[l.n]=1;if(l.n==='綠化地帶'||l.n==='休憩用地')return;
+  const t=el('text',{x:l.c[0],y:l.c[1],class:'nm',fill:l.k==='dev'?'#3B2466':KIND[l.k].col,'data-big':l.m2>9000||l.k==='bank'||l.k==='mark'||l.k==='dev'?1:0},gNM);t.textContent=(l.k==='bank'?'$ ':l.k==='mark'?'★ ':'')+l.n});
+let gLN=null;function buildLotNames(){if(gLN)return;gLN=el('g',{});svg.insertBefore(gLN,gNM);
+  M.lots.filter(l=>l.k==='buy'&&l.n).forEach(l=>{const t=el('text',{x:l.c[0],y:l.c[1],class:'ln'},gLN);t.textContent=l.n})}
+// view + level of detail
+let vb={x:bx0,y:by0,w:bx1-bx0,h:by1-by0},LOD=0;
+const LODNAME={1:'分區',2:'街區',3:'細節'};
+function fit(){const r=svg.getBoundingClientRect(),a=r.width/Math.max(1,r.height),cw=(bx1-bx0)*1.04,ch=(by1-by0)*1.45;
+  if(a>cw/ch){vb.h=ch;vb.w=ch*a}else{vb.w=cw;vb.h=cw/a}vb.x=(bx0+bx1)/2-vb.w/2;vb.y=(by0+by1)/2-vb.h/2-(by1-by0)*0.04;apply()}
+function apply(){svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);const r=svg.getBoundingClientRect(),u=vb.w/Math.max(1,r.width);
+  const lv=u>1.5?1:u>0.6?2:3;
+  if(lv>=2){buildLots();buildMinor()} if(lv===3){buildFoot();buildLotNames()}
+  if(lv!==LOD){LOD=lv;$('lod').textContent='顯示：'+LODNAME[lv];
+    gBlk.style.display=lv===1?'':'none';gLot.style.display=lv>=2?'':'none';gBO.style.display=lv>=2?'':'none';
+    if(rG.minor)rG.minor.style.display=lv>=2?'':'none';if(rG.foot)rG.foot.style.display=lv===3?'':'none';if(gLN)gLN.style.display=lv===3?'':'none';
+    if(lv===1)M.blocks.forEach(b=>paintBlock(b.id))}
+  gAL.setAttribute('font-size',20*u);gAL.style.display=lv===1?'':'none';
+  gRL.setAttribute('font-size',11*u);gRL.style.display=lv>=2?'':'none';
+  gRL.querySelectorAll('text').forEach(t=>t.style.display=(+t.dataset.k>=4||lv===3)?'':'none');
+  gNM.setAttribute('font-size',11.5*u);gNM.querySelectorAll('text').forEach(t=>t.style.display=(lv>=2||(t.dataset.big==='1'&&u<3.2))?'':'none');
+  if(gLN)gLN.setAttribute('font-size',9.5*u)}
+function toSvg(cx,cy){const r=svg.getBoundingClientRect();return[vb.x+(cx-r.left)/r.width*vb.w,vb.y+(cy-r.top)/r.height*vb.h]}
+function zoomAt(f,cx,cy){const r=svg.getBoundingClientRect();const [sx,sy]=toSvg(cx??r.left+r.width/2,cy??r.top+r.height/2);
+  const nw=Math.min(Math.max(vb.w*f,260),(bx1-bx0)*2.2),k=nw/vb.w;vb.x=sx-(sx-vb.x)*k;vb.y=sy-(sy-vb.y)*k;vb.w=nw;vb.h*=k;apply()}
+function zoomTo(g){const xs=g.map(p=>p[0]),ys=g.map(p=>p[1]),cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2;
+  const r=svg.getBoundingClientRect(),target=Math.max(r.width*1.1,Math.max(...xs)-Math.min(...xs)+300),a=r.width/r.height;
+  const from={...vb},to={w:target,h:target/a,x:cx-target/2,y:cy-target/a/2},t0=performance.now(),dur=matchMedia('(prefers-reduced-motion: reduce)').matches?0:380;
+  (function step(t){const k=dur?Math.min(1,(t-t0)/dur):1,e=1-Math.pow(1-k,3);for(const p of ['x','y','w','h'])vb[p]=from[p]+(to[p]-from[p])*e;apply();if(k<1)requestAnimationFrame(step)})(t0)}
+svg.addEventListener('wheel',e=>{e.preventDefault();zoomAt(Math.exp(e.deltaY*0.0018),e.clientX,e.clientY)},{passive:false});
+const ptr=new Map();let moved=0,pinch=null;
+svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);moved=0;svg.classList.add('drag');
+  if(ptr.size===2){const [a,b]=[...ptr.values()];pinch=Math.hypot(a[0]-b[0],a[1]-b[1])}});
+svg.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;const r=svg.getBoundingClientRect();
+  if(ptr.size===1){const dx=e.clientX-p[0],dy=e.clientY-p[1];moved+=Math.abs(dx)+Math.abs(dy);vb.x-=dx/r.width*vb.w;vb.y-=dy/r.height*vb.h;apply()}
+  ptr.set(e.pointerId,[e.clientX,e.clientY]);
+  if(ptr.size===2&&pinch){const [a,b]=[...ptr.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);moved+=99;zoomAt(pinch/d,(a[0]+b[0])/2,(a[1]+b[1])/2);pinch=d}});
+function up(e){const had=ptr.has(e.pointerId);ptr.delete(e.pointerId);if(ptr.size<2)pinch=null;if(!ptr.size)svg.classList.remove('drag');
+  if(had&&moved<7&&e.type==='pointerup'){svg.releasePointerCapture?.(e.pointerId);const t=document.elementFromPoint(e.clientX,e.clientY);if(!t||!t.dataset)return;
+    if(t.dataset.id!==undefined)select(+t.dataset.id);else if(t.dataset.b!==undefined)zoomTo(M.blocks[+t.dataset.b].g)}}
+svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
+$('zin').onclick=()=>zoomAt(.6);$('zout').onclick=()=>zoomAt(1.6);$('fit').onclick=fit;
+// game
+const MONTHS=24,START=60,LOAN_MAX=60,LOAN_STEP=20,RATE=0.015,DEV_MULT=2;
+const BUY=M.lots.filter(l=>l.k==='buy'||l.k==='dev'),AREAS=[...new Set(BUY.map(l=>l.a))];
+const areaCount={};BUY.forEach(l=>areaCount[l.a]=(areaCount[l.a]||0)+1);
+let S,rate=RATE;
+const fmt=v=>(Math.round(v*10)/10).toLocaleString('zh-HK')+'億';
+const price=l=>l.p*S.pm[l.a];
+const ownerOf=l=>S.own[l.id]||(l.k==='dev'?'dev':'');
+const owned=(who,a)=>BUY.filter(l=>S.own[l.id]===who&&(!a||l.a===a));
+const leader=(who,a)=>owned(who,a).length>=Math.ceil(areaCount[a]*0.15);
+const rentOf=l=>{const who=S.own[l.id];let r=price(l)*(l.r/l.p)*S.rm[l.a];if(l.nm)r*=1.2;if(who&&leader(who,l.a))r*=1.5;return r};
+const worth=who=>S.cash[who]-(who==='me'?S.debt:0)+owned(who).reduce((s,l)=>s+price(l),0);
+const lotName=l=>l.n||(l.s.length?l.s.join(' × ')+' 街區':'無名街區');
+const hex=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)),mix=(a,b,t)=>{const A=hex(a),B=hex(b);return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('')};
+function paintLot(id){const e=lotEl[id];if(!e)return;e.classList.toggle('me',S.own[id]==='me');e.classList.toggle('rv',S.own[id]==='rv')}
+function paintBlock(bid){const b=M.blocks[bid];if(b.k!=='buy')return;const sh={me:0,rv:0,dev:0},tot=b.lots.reduce((s,i)=>s+M.lots[i].m2,0)||1;
+  b.lots.forEach(i=>{const o=ownerOf(M.lots[i]);if(o)sh[o]+=M.lots[i].m2/tot});
+  let fill=baseFill(b);const top=Object.entries(sh).sort((a,c)=>c[1]-a[1])[0];
+  if(top[1]>0)fill=mix(fill,{me:'#D33F35',rv:'#2E5C9A',dev:'#5B3F8C'}[top[0]],Math.min(1,.25+top[1]*.85));blkEl[bid].setAttribute('fill',fill)}
+function paintAll(){M.lots.forEach(l=>paintLot(l.id));M.blocks.forEach(b=>paintBlock(b.id))}
+function newGame(){rate=RATE;S={m:1,cash:{me:START,rv:START},debt:0,own:{},pm:{},rm:{},sel:null,log:[]};AREAS.forEach(a=>{S.pm[a]=1;S.rm[a]=1});
+  for(const a of ['屏山','南邊圍','元朗東']){const c=BUY.filter(l=>l.a===a&&l.k==='buy'&&l.p<8);for(let i=0;i<2;i++){const l=c[Math.floor(Math.random()*c.length)];if(l&&!S.own[l.id]&&S.cash.rv>=l.p){S.own[l.id]='rv';S.cash.rv-=l.p}}}
+  S.log=['第一章：你帶住 60 億嚟到元朗。先喺周邊收平價農地（牛屎地，淺綠色），再打入市中心；縮細睇分區，撳一下放大逐個街區買賣；紫色係大地產商物業，可以用兩倍價收購；銀行可以借錢。'];
+  $('end').hidden=true;paintAll();closeCard();hud()}
+function hud(){$('month').textContent=`第 ${S.m} 個月 / 共 ${MONTHS} 個月`;
+  $('meCash').textContent=fmt(S.cash.me);$('meDebt').textContent=fmt(S.debt);$('meDebt').classList.toggle('on',S.debt>0);$('rvCash').textContent=fmt(S.cash.rv);
+  $('meWorth').textContent=fmt(worth('me'));$('rvWorth').textContent=fmt(worth('rv'));
+  $('log').innerHTML=S.log.slice(0,innerWidth>620?3:1).map((t,i)=>`<div class="${i?'old':'new'}">${t}</div>`).join('');renderCard()}
+function select(id){S.sel=id;gSel.setAttribute('points',pts(M.lots[id].g));$('deed').hidden=false;renderCard()}
+const row=(k,v)=>`<div class="row"><span>${k}</span><b>${v}</b></div>`;
+function renderCard(){if(S.sel===null)return;const l=M.lots[S.sel],K=KIND[l.k==='buy'&&l.f?'farm':l.k],dh=$('dh');let body='';
+  if(l.k==='buy'||l.k==='dev'){const who=ownerOf(l),p=price(l);
+    dh.style.background=who==='me'?'var(--me)':who==='rv'?'var(--rival)':who==='dev'?'var(--dev)':'var(--gold)';
+    $('dTag').textContent=l.a+' · '+(who==='dev'?l.dev:'可買街區');$('dSt').textContent=lotName(l);$('dSub').textContent=l.n?l.s.join(' × '):'';
+    const perks=[];if(l.nm)perks.push('近地標，租金 +20%');if((who==='me'||who==='rv')&&leader(who,l.a))perks.push('地區龍頭，租金 ×1.5');
+    const ownTxt=who==='me'?'你嘅物業':who==='rv'?'金牛地產物業':who==='dev'?`${l.dev}持有，收購價係市值兩倍`:'未有業主';
+    body=row('佔地',l.m2.toLocaleString('zh-HK')+' 平方米')+row('市值',fmt(p))+row('每月租金',fmt(rentOf(l)))+(l.also&&l.also.length?row('包括',l.also.join('、')):'')+
+      `<div class="note">${ownTxt}${perks.length?'，'+perks.join('，'):''} · 你喺${l.a}有 ${owned('me',l.a).length}/${areaCount[l.a]} 個街區</div>`;
+    let btn='';if(!who)btn=`<button class="primary" id="act" ${S.cash.me<p?'disabled':''}>買入 ${fmt(p)}</button>`;
+    else if(who==='rv')btn=`<button class="primary" id="act" ${S.cash.me<p*1.5?'disabled':''}>收購 ${fmt(p*1.5)}</button>`;
+    else if(who==='dev')btn=`<button class="primary" id="act" ${S.cash.me<p*DEV_MULT?'disabled':''}>收購 ${fmt(p*DEV_MULT)}</button>`;
+    else btn=`<button id="act">放售 ${fmt(p*0.9)}</button>`;
+    body+=`<div class="act">${btn}<button id="close">收起</button></div>`}
+  else if(l.k==='bank'){dh.style.background=K.head;$('dTag').textContent='銀行 · 非賣品';$('dSt').textContent=l.n;$('dSub').textContent=l.s.join(' × ');
+    const room=LOAN_MAX-S.debt;
+    body=row('你嘅貸款',fmt(S.debt))+row('仲可以借',fmt(room))+row('月息',(rate*100).toFixed(2)+'%')+
+      `<div class="note">每次借或還 ${LOAN_STEP} 億。利息每個月自動喺現金扣除；遊戲完結時貸款會喺身家扣返。</div>`+
+      `<div class="act"><button class="bankbtn" id="borrow" ${room<LOAN_STEP?'disabled':''}>借 ${LOAN_STEP} 億</button><button id="repay" ${S.debt<=0||S.cash.me<Math.min(LOAN_STEP,S.debt)?'disabled':''}>還 ${fmt(Math.min(LOAN_STEP,S.debt))}</button><button id="close">收起</button></div>`}
+  else{dh.style.background=K.head;$('dTag').textContent=K.tag+' · 非賣品';$('dSt').textContent=l.n||K.tag;$('dSub').textContent=l.dev?`業主：${l.dev}`:l.s.join(' × ');
+    const why={park:'公眾休憩用地，唔可以買賣。',gov:'政府或公共機構用地，唔可以買賣。',rel:'宗教場所，唔可以買賣。',comm:'學校、醫院同社區設施，唔可以買賣。',mark:'城中地標唔放售，但附近地段租金會加 20%。'}[l.k];
+    body=row('佔地',l.m2.toLocaleString('zh-HK')+' 平方米')+`<div class="note">${why}</div><div class="act"><button id="close">收起</button></div>`}
+  $('dBody').innerHTML=body;
+  const a=$('act');if(a)a.onclick=act;const bo=$('borrow');if(bo)bo.onclick=borrow;const re=$('repay');if(re)re.onclick=repay;$('close').onclick=closeCard}
+function act(){const l=M.lots[S.sel],who=ownerOf(l),p=price(l);
+  if(!who&&S.cash.me>=p){S.cash.me-=p;S.own[l.id]='me';S.log.unshift(`你買入「${lotName(l)}」，用咗 ${fmt(p)}。`)}
+  else if(who==='rv'&&S.cash.me>=p*1.5){S.cash.me-=p*1.5;S.cash.rv+=p*1.5;S.own[l.id]='me';S.log.unshift(`你以 ${fmt(p*1.5)} 由金牛地產手上收購「${lotName(l)}」。`)}
+  else if(who==='dev'&&S.cash.me>=p*DEV_MULT){S.cash.me-=p*DEV_MULT;S.own[l.id]='me';S.log.unshift(`你以 ${fmt(p*DEV_MULT)} 向${l.dev}收購「${lotName(l)}」。`)}
+  else if(who==='me'){S.cash.me+=p*0.9;delete S.own[l.id];S.log.unshift(`你以 ${fmt(p*0.9)} 放售「${lotName(l)}」。`)}
+  paintLot(l.id);paintBlock(l.blk);hud()}
+function borrow(){S.debt+=LOAN_STEP;S.cash.me+=LOAN_STEP;S.log.unshift(`你喺${M.lots[S.sel].n}借咗 ${LOAN_STEP} 億，總貸款 ${fmt(S.debt)}。`);hud()}
+function repay(){const v=Math.min(LOAN_STEP,S.debt);S.debt-=v;S.cash.me-=v;S.log.unshift(`你還咗 ${fmt(v)}，仲欠 ${fmt(S.debt)}。`);hud()}
+function closeCard(){if(S)S.sel=null;gSel.setAttribute('points','');$('deed').hidden=true}
+const pickA=()=>{const m=['元朗市中心','元朗舊墟','朗屏','水邊圍','南邊圍','屏山','元朗東'];return m[Math.floor(Math.random()*m.length)]};
+const EVENTS=[
+  ()=>{S.pm['屏山']*=1.15;S.pm['元朗東']*=1.1;return '政府公布北部都會區新發展區規劃，屏山地價升 15%，元朗東升 10%。'},
+  ()=>{const a=pickA();S.pm[a]*=0.9;return `${a}有大型甲級寫字樓落成，${a}樓價跌 10%。`},
+  ()=>{rate+=0.0025;AREAS.forEach(a=>S.pm[a]*=0.96);return `銀行加息 0.25 厘，貸款月息變 ${(rate*100).toFixed(2)}%，全區樓價跌 4%。`},
+  ()=>{AREAS.forEach(a=>S.pm[a]*=1.05);return '樓市氣氛好轉，全區樓價升 5%。'},
+  ()=>{S.rm['元朗市中心']*=1.3;return '長假期北上同本地客湧入元朗，市中心商舖租金升 30%，維持一個月。'},
+  ()=>{S.typhoon=true;return '八號風球襲港，今個月所有租金收入減半。'},
+  ()=>{S.rm['元朗舊墟']*=1.25;return '舊墟美食探店熱潮，元朗舊墟租金升 25%，維持一個月。'},
+  ()=>{const mine=owned('me');if(!mine.length)return '今個月風平浪靜。';const l=mine[Math.floor(Math.random()*mine.length)];S.skip=l.id;return `租客走數，「${lotName(l)}」今個月收唔到租。`},
+];
+function rivalTurn(){const mine=new Set(owned('rv').map(l=>l.a)),bought=[];
+  for(let k=0;k<2;k++){const c=BUY.filter(l=>l.k==='buy'&&!S.own[l.id]&&price(l)<=S.cash.rv-15);if(!c.length)break;
+    const sc=l=>(mine.has(l.a)?1.5:1)*(l.nm?1.2:1)+Math.random()*.4;c.sort((a,b)=>sc(b)-sc(a));
+    const l=c[0];S.cash.rv-=price(l);S.own[l.id]='rv';bought.push(l);paintLot(l.id);paintBlock(l.blk)}
+  return bought.length?`金牛地產買入 ${bought.map(lotName).join('、')}。`:''}
+$('next').onclick=()=>{if(S.m>MONTHS)return;S.typhoon=false;S.skip=null;
+  const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)]();
+  const inc={me:0,rv:0};BUY.forEach(l=>{const w=S.own[l.id];if(!w||l.id===S.skip)return;inc[w]+=rentOf(l)});
+  if(S.typhoon){inc.me/=2;inc.rv/=2}
+  const interest=S.debt*rate;S.cash.me+=inc.me-interest;S.cash.rv+=inc.rv;AREAS.forEach(a=>S.rm[a]=1);
+  const rv=rivalTurn();
+  S.log.unshift(`第 ${S.m} 個月：${ev} 你收租 ${fmt(inc.me)}${interest?`，俾利息 ${fmt(interest)}`:''}。${rv}`);
+  S.m++;
+  if(S.m>MONTHS){S.m=MONTHS;hud();const a=worth('me'),b=worth('rv');
+    $('endT').textContent=a>b?'你成為元朗地產大王，下一章：觀塘':'金牛地產贏咗今局';
+    $('endP').textContent=`兩年後，你身家 ${fmt(a)}（已扣貸款），金牛地產 ${fmt(b)}。你擁有 ${owned('me').length} 個街區。`;$('end').hidden=false;S.m=MONTHS+1;return}
+  hud()};
+$('again').onclick=newGame;
+addEventListener('resize',apply);
+newGame();fit();
+</script>
