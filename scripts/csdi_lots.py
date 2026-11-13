@@ -49,14 +49,17 @@ keep_union = unary_union([OG[i] for i in keep_ids]).buffer(0.5)
 G = []  # dicts: g, zone, char, attrs
 for f in feats:
     g = P(shape(f['geometry'])).buffer(0)
-    if g.is_empty or g.area < 15: continue
+    if g.is_empty or g.area < 3: continue
     g = g.difference(keep_union)
     parts = list(g.geoms) if g.geom_type in ('MultiPolygon', 'GeometryCollection') else [g]
     for q in parts:
-        if q.geom_type != 'Polygon' or q.area < 25: continue
+        if q.geom_type != 'Polygon' or q.area < 3: continue
         ov = [(OG[i].intersection(q).area, i) for i in otree.query(q)]
         ov = [(a, i) for a, i in ov if a > 1 and old[i]['k'] not in KEEP]
-        if not ov or sum(a for a, _ in ov) < q.area * 0.3: continue  # mostly outside the playable map
+        if not ov or sum(a for a, _ in ov) < q.area * 0.1:  # in a gap between old plots: borrow from the nearest one
+            near = [(OG[i].distance(q), i) for i in otree.query(q.buffer(40)) if old[i]['k'] not in KEEP]
+            if not near: continue  # outside the playable map
+            ov = [(q.area, min(near)[1])]
         best = max(ov)[1]; o = old[best]
         zv = [(ZG[i].intersection(q).area, i) for i in ztree.query(q)]
         z = max(zv)[1] if zv else o['blk']
@@ -107,22 +110,24 @@ for gi, mem in enumerate(groups):
 out = [dict(l) for l in old if l['k'] in KEEP]
 for mem in groups:
     if not mem: continue
-    u = unary_union([G[m]['g'].buffer(0.6) for m in mem]).buffer(-0.6)
-    if u.geom_type == 'MultiPolygon': u = max(u.geoms, key=lambda x: x.area)
-    if u.area < 150: continue
-    w = collections.Counter()
-    for m in mem:
+    u = unary_union([G[m]['g'].buffer(1.3) for m in mem]).buffer(-1.3)
+    parts = list(u.geoms) if u.geom_type == 'MultiPolygon' else [u]
+    for u in parts:  # a group that isn't one connected shape becomes one plot per piece
+      if u.area < 40: continue
+      pm = [m for m in mem if G[m]['g'].representative_point().within(u.buffer(1.5))] or mem
+      w = collections.Counter()
+      for m in pm:
         for a, i in G[m]['ov']: w[i] += a
-    base = old[w.most_common(1)[0][0]]
-    val = sum(old[i]['p'] * a / max(1, old[i]['m2']) for i, a in w.items())
-    rent = sum(old[i]['r'] * a / max(1, old[i]['m2']) for i, a in w.items())
-    rp = u.representative_point(); g = u.simplify(0.6)
-    k = 'dev' if G[mem[0]]['char'][0] == 'dev' else 'buy'
-    out.append({'f': 1 if G[mem[0]]['char'][0] == 'farm' else 0, 'id': 0, 'blk': G[mem[0]]['z'], 'k': k,
-                'n': base['n'] if k == 'dev' or base['n'] in ('農地', '空地') else '', 'also': [], 'dev': base['dev'] if k == 'dev' else '',
-                'a': base['a'], 's': base['s'], 'm2': round(u.area), 'p': max(3, round(val)), 'r': max(0.1, round(rent, 1)),
-                'c': [round(rp.x, 1), round(rp.y, 1)], 'nm': base.get('nm', 0), 'lots': len(mem),
-                'g': [[round(x, 1), round(y, 1)] for x, y in g.exterior.coords[:-1]]})
+      base = old[w.most_common(1)[0][0]]
+      val = sum(old[i]['p'] * a / max(1, old[i]['m2']) for i, a in w.items())
+      rent = sum(old[i]['r'] * a / max(1, old[i]['m2']) for i, a in w.items())
+      rp = u.representative_point(); g = u.simplify(0.6)
+      k = 'dev' if G[pm[0]]['char'][0] == 'dev' else 'buy'
+      out.append({'f': 1 if G[pm[0]]['char'][0] == 'farm' else 0, 'id': 0, 'blk': G[pm[0]]['z'], 'k': k,
+                  'n': base['n'] if k == 'dev' or base['n'] in ('農地', '空地') else '', 'also': [], 'dev': base['dev'] if k == 'dev' else '',
+                  'a': base['a'], 's': base['s'], 'm2': round(u.area), 'p': max(3, round(val)), 'r': max(0.1, round(rent, 1)),
+                  'c': [round(rp.x, 1), round(rp.y, 1)], 'nm': base.get('nm', 0), 'lots': len(pm),
+                  'g': [[round(x, 1), round(y, 1)] for x, y in g.exterior.coords[:-1]]})
 for i, l in enumerate(out): l['id'] = i
 for z in zones: z['lots'] = []
 for l in out:
