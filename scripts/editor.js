@@ -66,9 +66,9 @@ document.body.insertAdjacentHTML('beforeend',`<button id="edBtn">✎ 編輯地�
 const msg=t=>{$('edMsg').textContent=t};
 // developers already in the game (sound-alike names); new ones typed in are added for this session
 // owners from the game design doc (香港地產遊戲設計文件): 大地產商 / 虛構對手 / 小型業主
-const DEVG=[['大地產商',['恒記兆業','新鴻記','華茂集團','順和置業','黃河集團','新世紀發展','九龍及匯德峯','太府地產','置業集團','順德集團']],
- ['虛構對手',['元朝地產','金煌實業','甜心集團','東九建業','盛世發展','天幕集團']],
- ['小型業主',['陸國集團','五蟹集團','皇居置業','紅磚建築','溫莎發展','萬國地產','紐約資本']]];
+// read from data/companies.json (embedded by build_html.py) — edit names there, not here
+const CO=M.companies||{major:[],rivals:[],small:[]};
+const DEVG=[['大地產商',CO.major.map(c=>c.name)],['虛構對手',CO.rivals.map(c=>c.name)],['小型業主',CO.small.map(c=>c.name)]];
 const DEVS=DEVG.flatMap(g=>g[1]);
 // government building footprints (Lands Department via CSDI): drawn from street level, names at closest zoom
 const gBld=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gBld,gBO);let gBN=null,bldBuilt=false;

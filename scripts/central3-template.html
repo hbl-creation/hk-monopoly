@@ -87,7 +87,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
     </div>
     <div class="players">
       <div class="card pl"><div class="who"><i style="background:var(--me)"></i>你</div><span class="k">現金</span><span class="v" id="meCash"></span><span class="k">貸款</span><span class="v debt" id="meDebt"></span><span class="k">身家</span><span class="v" id="meWorth"></span></div>
-      <div class="card pl"><div class="who"><i style="background:var(--rival)"></i>金牛地產</div><span class="k">現金</span><span class="v" id="rvCash"></span><span class="k">身家</span><span class="v" id="rvWorth"></span></div>
+      <div class="card pl"><div class="who"><i style="background:var(--rival)"></i>天幕集團</div><span class="k">現金</span><span class="v" id="rvCash"></span><span class="k">身家</span><span class="v" id="rvWorth"></span></div>
     </div>
   </div>
   <div class="zoom"><button id="zin" aria-label="放大">＋</button><button id="zout" aria-label="縮小">－</button><button id="fit" aria-label="睇全區" style="font-size:12px">全區</button></div>
@@ -219,7 +219,7 @@ function renderCard(){if(S.sel===null)return;const l=M.lots[S.sel],K=KIND[l.k],d
     dh.style.background=who==='me'?'var(--me)':who==='rv'?'var(--rival)':who==='dev'?'var(--dev)':'var(--gold)';
     $('dTag').textContent=l.a+' · '+(who==='dev'?l.dev:'可買街區');$('dSt').textContent=lotName(l);$('dSub').textContent=l.n?l.s.join(' × '):'';
     const perks=[];if(l.nm)perks.push('近地標，租金 +20%');if((who==='me'||who==='rv')&&leader(who,l.a))perks.push('地區龍頭，租金 ×1.5');
-    const ownTxt=who==='me'?'你嘅物業':who==='rv'?'金牛地產物業':who==='dev'?`${l.dev}持有，收購價係市值兩倍`:'未有業主';
+    const ownTxt=who==='me'?'你嘅物業':who==='rv'?'天幕集團物業':who==='dev'?`${l.dev}持有，收購價係市值兩倍`:'未有業主';
     body=row('佔地',l.m2.toLocaleString('zh-HK')+' 平方米')+row('市值',fmt(p))+row('每月租金',fmt(rentOf(l)))+(l.also&&l.also.length?row('包括',l.also.join('、')):'')+
       `<div class="note">${ownTxt}${perks.length?'，'+perks.join('，'):''} · 你喺${l.a}有 ${owned('me',l.a).length}/${areaCount[l.a]} 個街區</div>`;
     let btn='';if(!who)btn=`<button class="primary" id="act" ${S.cash.me<p?'disabled':''}>買入 ${fmt(p)}</button>`;
@@ -239,7 +239,7 @@ function renderCard(){if(S.sel===null)return;const l=M.lots[S.sel],K=KIND[l.k],d
   const a=$('act');if(a)a.onclick=act;const bo=$('borrow');if(bo)bo.onclick=borrow;const re=$('repay');if(re)re.onclick=repay;$('close').onclick=closeCard}
 function act(){const l=M.lots[S.sel],who=ownerOf(l),p=price(l);
   if(!who&&S.cash.me>=p){S.cash.me-=p;S.own[l.id]='me';S.log.unshift(`你買入「${lotName(l)}」，用咗 ${fmt(p)}。`)}
-  else if(who==='rv'&&S.cash.me>=p*1.5){S.cash.me-=p*1.5;S.cash.rv+=p*1.5;S.own[l.id]='me';S.log.unshift(`你以 ${fmt(p*1.5)} 由金牛地產手上收購「${lotName(l)}」。`)}
+  else if(who==='rv'&&S.cash.me>=p*1.5){S.cash.me-=p*1.5;S.cash.rv+=p*1.5;S.own[l.id]='me';S.log.unshift(`你以 ${fmt(p*1.5)} 由天幕集團手上收購「${lotName(l)}」。`)}
   else if(who==='dev'&&S.cash.me>=p*DEV_MULT){S.cash.me-=p*DEV_MULT;S.own[l.id]='me';S.log.unshift(`你以 ${fmt(p*DEV_MULT)} 向${l.dev}收購「${lotName(l)}」。`)}
   else if(who==='me'){S.cash.me+=p*0.9;delete S.own[l.id];S.log.unshift(`你以 ${fmt(p*0.9)} 放售「${lotName(l)}」。`)}
   paintLot(l.id);paintBlock(l.blk);hud()}
@@ -261,7 +261,7 @@ function rivalTurn(){const mine=new Set(owned('rv').map(l=>l.a)),bought=[];
   for(let k=0;k<2;k++){const c=BUY.filter(l=>l.k==='buy'&&!S.own[l.id]&&price(l)<=S.cash.rv-15);if(!c.length)break;
     const sc=l=>(mine.has(l.a)?1.5:1)*(l.nm?1.2:1)+Math.random()*.4;c.sort((a,b)=>sc(b)-sc(a));
     const l=c[0];S.cash.rv-=price(l);S.own[l.id]='rv';bought.push(l);paintLot(l.id);paintBlock(l.blk)}
-  return bought.length?`金牛地產買入 ${bought.map(lotName).join('、')}。`:''}
+  return bought.length?`天幕集團買入 ${bought.map(lotName).join('、')}。`:''}
 $('next').onclick=()=>{if(S.m>MONTHS)return;S.typhoon=false;S.skip=null;
   const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)]();
   const inc={me:0,rv:0};BUY.forEach(l=>{const w=S.own[l.id];if(!w||l.id===S.skip)return;inc[w]+=rentOf(l)});
@@ -271,8 +271,8 @@ $('next').onclick=()=>{if(S.m>MONTHS)return;S.typhoon=false;S.skip=null;
   S.log.unshift(`第 ${S.m} 個月：${ev} 你收租 ${fmt(inc.me)}${interest?`，俾利息 ${fmt(interest)}`:''}。${rv}`);
   S.m++;
   if(S.m>MONTHS){S.m=MONTHS;hud();const a=worth('me'),b=worth('rv');
-    $('endT').textContent=a>b?'你成為中環地產大亨':'金牛地產贏咗今局';
-    $('endP').textContent=`兩年後，你身家 ${fmt(a)}（已扣貸款），金牛地產 ${fmt(b)}。你擁有 ${owned('me').length} 個街區。`;$('end').hidden=false;S.m=MONTHS+1;return}
+    $('endT').textContent=a>b?'你成為中環地產大亨':'天幕集團贏咗今局';
+    $('endP').textContent=`兩年後，你身家 ${fmt(a)}（已扣貸款），天幕集團 ${fmt(b)}。你擁有 ${owned('me').length} 個街區。`;$('end').hidden=false;S.m=MONTHS+1;return}
   hud()};
 $('again').onclick=newGame;
 addEventListener('resize',apply);

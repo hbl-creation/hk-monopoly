@@ -73,7 +73,7 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
     <div class="card brand"><h1>油尖旺大富翁</h1><div class="month" id="month"></div></div>
     <div class="players">
       <div class="card pl"><div class="nm"><i style="background:var(--me)"></i>你</div><span class="k">現金</span><span class="v" id="meCash"></span><span class="k">身家</span><span class="v" id="meWorth"></span></div>
-      <div class="card pl"><div class="nm"><i style="background:var(--rival)"></i>金牛地產</div><span class="k">現金</span><span class="v" id="rvCash"></span><span class="k">身家</span><span class="v" id="rvWorth"></span></div>
+      <div class="card pl"><div class="nm"><i style="background:var(--rival)"></i>盛世發展</div><span class="k">現金</span><span class="v" id="rvCash"></span><span class="k">身家</span><span class="v" id="rvWorth"></span></div>
     </div>
   </div>
   <div class="zoom"><button id="zin" aria-label="放大">＋</button><button id="zout" aria-label="縮小">－</button><button id="fit" aria-label="睇全區" style="font-size:12px">全區</button></div>
@@ -152,7 +152,7 @@ const rentOf=b=>{const who=S.own[b.id];let r=price(b)*(b.r/b.p)*S.rm[b.a];if(who
 const worth=who=>S.cash[who]+owners(who).reduce((s,b)=>s+price(b),0);
 function newGame(){S={m:1,cash:{me:START,rv:START},own:{},pm:{},rm:{},sel:null,log:[]};AREAS.forEach(a=>{S.pm[a]=1;S.rm[a]=1});
   const pick=['大角咀','太子','油麻地'];for(const a of pick){const c=M.blocks.filter(b=>b.a===a&&b.p<25);for(let i=0;i<3;i++){const b=c[Math.floor(Math.random()*c.length)];if(!S.own[b.id]&&S.cash.rv>=b.p){S.own[b.id]='rv';S.cash.rv-=b.p}}}
-  S.log=['你帶住 150 億入場。撳街區睇樓契，買入收租；對手金牛地產已經喺大角咀、太子同油麻地買咗幾個街區。'];
+  S.log=['你帶住 150 億入場。撳街區睇樓契，買入收租；對手盛世發展已經喺大角咀、太子同油麻地買咗幾個街區。'];
   document.getElementById('end').hidden=true;paintAll();const first=M.blocks.find(b=>b.poi==='西洋菜街行人專用區')||M.blocks[0];select(first.id);hud()}
 function paint(id){const e=bEl[id];e.classList.toggle('me',S.own[id]==='me');e.classList.toggle('rv',S.own[id]==='rv');e.classList.toggle('sel',S.sel===id)}
 function paintAll(){M.blocks.forEach(b=>paint(b.id))}
@@ -166,14 +166,14 @@ function renderDeed(){if(S.sel===null)return;const b=M.blocks[S.sel],who=S.own[b
   dM2.textContent=b.m2.toLocaleString('zh-HK')+' 平方米';dPrice.textContent=fmt(p);dRent.textContent=fmt(rentOf(b));
   const lead=who&&leader(who,b.a)?'，佢係'+b.a+'地區龍頭，租金 ×1.5':'';
   const mine=owners('me',b.a).length;
-  dOwner.textContent=(who==='me'?'你嘅物業'+lead:who==='rv'?'金牛地產物業'+lead:'未有業主')+` · 你喺${b.a}有 ${mine}/${areaCount[b.a]} 個街區`;
+  dOwner.textContent=(who==='me'?'你嘅物業'+lead:who==='rv'?'盛世發展物業'+lead:'未有業主')+` · 你喺${b.a}有 ${mine}/${areaCount[b.a]} 個街區`;
   const btn=document.getElementById('buy');
   if(!who){btn.textContent='買入 '+fmt(p);btn.disabled=S.cash.me<p;btn.hidden=false}
   else if(who==='rv'){const c=p*1.5;btn.textContent='收購 '+fmt(c);btn.disabled=S.cash.me<c;btn.hidden=false}
   else btn.hidden=true}
 document.getElementById('buy').onclick=()=>{const b=M.blocks[S.sel],who=S.own[b.id],p=price(b);
   if(!who&&S.cash.me>=p){S.cash.me-=p;S.own[b.id]='me';S.log.unshift(`你買入${b.a}「${b.s.slice(0,2).join(' × ')}」，用咗 ${fmt(p)}。`)}
-  else if(who==='rv'&&S.cash.me>=p*1.5){S.cash.me-=p*1.5;S.cash.rv+=p*1.5;S.own[b.id]='me';S.log.unshift(`你以 ${fmt(p*1.5)} 由金牛地產手上收購咗${b.poi||b.s[0]+'街區'}。`)}
+  else if(who==='rv'&&S.cash.me>=p*1.5){S.cash.me-=p*1.5;S.cash.rv+=p*1.5;S.own[b.id]='me';S.log.unshift(`你以 ${fmt(p*1.5)} 由盛世發展手上收購咗${b.poi||b.s[0]+'街區'}。`)}
   paint(b.id);hud()};
 document.getElementById('close').onclick=()=>{const p=S.sel;S.sel=null;gSel.setAttribute('points','');if(p!==null)paint(p);document.getElementById('deed').hidden=true};
 const EVENTS=[
@@ -191,7 +191,7 @@ function rivalTurn(){const mine=new Set(owners('rv').map(b=>b.a));let bought=[];
   for(let k=0;k<2;k++){const reserve=20,c=M.blocks.filter(b=>!S.own[b.id]&&price(b)<=S.cash.rv-reserve);if(!c.length)break;
     c.sort((a,b)=>((mine.has(b.a)?1.6:1)*b.r/b.p)-((mine.has(a.a)?1.6:1)*a.r/a.p)+(Math.random()-.5)*0.02);const b=c[Math.floor(Math.random()*Math.min(6,c.length))];
     S.cash.rv-=price(b);S.own[b.id]='rv';bought.push(b);paint(b.id)}
-  return bought.length?`金牛地產買入 ${bought.map(b=>b.poi||b.a+b.s[0]).join('、')}。`:''}
+  return bought.length?`盛世發展買入 ${bought.map(b=>b.poi||b.a+b.s[0]).join('、')}。`:''}
 document.getElementById('next').onclick=()=>{if(S.m>MONTHS)return;S.typhoon=false;S.skip=null;
   const ev=EVENTS[Math.floor(Math.random()*EVENTS.length)]();
   const inc={me:0,rv:0};M.blocks.forEach(b=>{const w=S.own[b.id];if(!w||b.id===S.skip)return;inc[w]+=rentOf(b)});
@@ -202,8 +202,8 @@ document.getElementById('next').onclick=()=>{if(S.m>MONTHS)return;S.typhoon=fals
   S.log.unshift(`第 ${S.m} 個月：${ev} 你收租 ${fmt(inc.me)}。${rv}`);
   S.m++;
   if(S.m>MONTHS){S.m=MONTHS;hud();const a=worth('me'),b=worth('rv');
-    endT.textContent=a>b?'你成為油尖旺地產大亨':'金牛地產贏咗今局';
-    endP.textContent=`兩年後，你身家 ${fmt(a)}，金牛地產 ${fmt(b)}。你擁有 ${owners('me').length} 個街區。`;document.getElementById('end').hidden=false;S.m=MONTHS+1;return}
+    endT.textContent=a>b?'你成為油尖旺地產大亨':'盛世發展贏咗今局';
+    endP.textContent=`兩年後，你身家 ${fmt(a)}，盛世發展 ${fmt(b)}。你擁有 ${owners('me').length} 個街區。`;document.getElementById('end').hidden=false;S.m=MONTHS+1;return}
   hud()};
 document.getElementById('again').onclick=newGame;
 addEventListener('resize',apply);
