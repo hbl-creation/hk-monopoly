@@ -58,14 +58,18 @@ document.body.insertAdjacentHTML('beforeend',`<button id="edBtn">✎ 編輯地�
   <option value="park">公園／休憩用地</option><option value="gov">政府用地</option><option value="rel">宗教場所</option><option value="comm">學校及醫院</option>
   <option value="mark">地標（非賣品）</option><option value="bank">銀行</option></select>
  <label>名稱</label><input id="edN" placeholder="例如：合益廣場">
- <label>地產商（揀咗就會變大地產商物業）</label><select id="edD"></select><input id="edD2" placeholder="新地產商名稱" style="display:none;margin-top:4px">
+ <label>業主集團（揀咗就會變集團物業）</label><select id="edD"></select><input id="edD2" placeholder="新地產商名稱" style="display:none;margin-top:4px">
  <label>市值（億）</label><input id="edP" type="number" min="1" step="1">
  <label>備註（俾 Claude 睇）</label><input id="edNote" placeholder="例如：沿條巷一開二">
  <div class="row"><button class="pri" id="edOk">套用</button><button id="edMerge">同另一塊合併</button><button id="edX">收起</button></div>
 </div>`);
 const msg=t=>{$('edMsg').textContent=t};
 // developers already in the game (sound-alike names); new ones typed in are added for this session
-const DEVS=['新紅基地產','致地集團','常實集團','泰古地產','迅德集團','九艙集團','順和置業'];
+// owners from the game design doc (香港地產遊戲設計文件): 大地產商 / 虛構對手 / 小型業主
+const DEVG=[['大地產商',['恒記兆業','新鴻記','華茂集團','順和置業','黃河集團','新世紀發展','九龍及匯德峯','太府地產','置業集團','順德集團']],
+ ['虛構對手',['元朝地產','金煌實業','甜心集團','東九建業','盛世發展','天幕集團']],
+ ['小型業主',['陸國集團','五蟹集團','皇居置業','紅磚建築','溫莎發展','萬國地產','紐約資本']]];
+const DEVS=DEVG.flatMap(g=>g[1]);
 // government building footprints (Lands Department via CSDI): drawn from street level, names at closest zoom
 const gBld=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gBld,gBO);let gBN=null,bldBuilt=false;
 function buildBld(){if(bldBuilt||!M.bld)return;bldBuilt=true;let d='';
@@ -141,8 +145,9 @@ function pickLot(id){const l=M.lots[id];
   $('edTitle').textContent=l.n||'未命名街區';$('edSub').textContent=`#${l.id} · ${l.a} · ${l.m2.toLocaleString()} 平方米 · ${(l.s||[]).join(' × ')}`;
   const ed=E.lots[l.c.join(',')]||{};
   $('edT').value=typeOf(l);$('edN').value=l.n||'';$('edD').value=l.dev||'';$('edP').value=l.p;$('edNote').value=ed.note||'';
-  const devs=[...new Set(DEVS.concat(M.lots.map(x=>x.dev).filter(Boolean)))];
-  $('edD').innerHTML='<option value="">（唔適用）</option>'+devs.map(d=>`<option>${d}</option>`).join('')+'<option value="__new">＋ 新增地產商…</option>';
+  const extra=[...new Set(M.lots.map(x=>x.dev).filter(d=>d&&!DEVG.some(g=>g[1].includes(d))).concat(DEVS.filter(d=>!DEVG.some(g=>g[1].includes(d)))))],devs=DEVS.concat(extra);
+  $('edD').innerHTML='<option value="">（唔適用）</option>'+DEVG.map(([g,l])=>`<optgroup label="${g}">${l.map(d=>`<option>${d}</option>`).join('')}</optgroup>`).join('')
+    +(extra.length?`<optgroup label="其他">${extra.map(d=>`<option>${d}</option>`).join('')}</optgroup>`:'')+'<option value="__new">＋ 新增地產商…</option>';
   $('edD').value=l.dev&&devs.includes(l.dev)?l.dev:'';$('edD2').style.display='none';$('edD2').value='';
   $('edPanel').style.display='block'}
 function hidePanel(){$('edPanel').style.display='none';gSel.setAttribute('points','');selL=null;mergeFrom=null}

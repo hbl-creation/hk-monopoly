@@ -6,7 +6,7 @@ KEEP_MARK = {'元朗劇院', '大橋街市', '同益街市', '香港屏山鄧族
 for b in out:
     if b['k'] == 'mark' and b['n'] not in KEEP_MARK: b['k'], b['n'] = 'buy', ''
 # developers (sound-alike names) - only ones we're sure of; others to confirm with Herbert
-DEV = {'新紅基地產': ['形點', '形點II', '元點', '加點']}
+DEV = {'新鴻記': ['形點', '形點II', '元點', '加點']}
 MANUAL = []
 bl = [[zh(p['name']), g.buffer(0), p['type']] for p, g in blds if g.area > 40 and p['type'] not in ('roof',)]
 dev_of = {n: d for d, ns in DEV.items() for n in ns}
