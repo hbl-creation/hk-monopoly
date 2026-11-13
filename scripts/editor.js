@@ -65,7 +65,7 @@ document.body.insertAdjacentHTML('beforeend',`<button id="edBtn">✎ 編輯地�
 </div>`);
 const msg=t=>{$('edMsg').textContent=t};
 // developers already in the game (sound-alike names); new ones typed in are added for this session
-const DEVS=['新紅基地產','致地集團','常實集團','泰古地產','迅德集團','九艙集團'];
+const DEVS=['新紅基地產','致地集團','常實集團','泰古地產','迅德集團','九艙集團','順和置業'];
 // government building footprints (Lands Department via CSDI): drawn from street level, names at closest zoom
 const gBld=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gBld,gBO);let gBN=null,bldBuilt=false;
 function buildBld(){if(bldBuilt||!M.bld)return;bldBuilt=true;let d='';
