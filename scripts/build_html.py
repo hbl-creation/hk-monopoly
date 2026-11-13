@@ -7,7 +7,7 @@
 - a new export, if given, is merged into the master edit file first
 - writes prototypes/<key>-monopoly.html
 """
-import json, sys, os, collections
+import json, sys, os, collections, math
 from shapely.geometry import Polygon, Point
 from shapely.ops import unary_union
 
@@ -38,9 +38,26 @@ def apply(l, e):
         if a in e: l[a] = e[a]
     if e.get('p'): l['p'] = int(e['p']); l['r'] = round(l['p'] * 0.06, 1)
 
+# land wiped with the 刪地 brush: a plot goes when the latest land stroke over its centre is a wipe
+def seg_d(p, a, b):
+    dx, dy = b[0] - a[0], b[1] - a[1]; L2 = dx * dx + dy * dy
+    t = max(0, min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / L2)) if L2 else 0
+    return math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy)
+def stroke_hit(p, s):
+    q = s[2]
+    if len(q) == 1: return math.hypot(p[0] - q[0][0], p[1] - q[0][1]) < s[1]
+    return any(seg_d(p, q[i - 1], q[i]) < s[1] for i in range(1, len(q)))
+def land_wiped(p):
+    h = False
+    for s in E['erase']:
+        if s[0] in ('L', 'R') and stroke_hit(p, s): h = s[0] == 'L'
+    return h
 # match lot edits on the generated geometry first, then merge, then apply edits to surviving lots
 gone, miss = set(), []
 targets = [(k, find([float(v) for v in k.split(',')]), e) for k, e in E['lots'].items()]
+wiped_n = 0
+for l in L:
+    if land_wiped(l['c']): gone.add(l['id']); wiped_n += 1
 for a_c, b_c in E['merge']:
     a, b = find(a_c), find(b_c)
     if not a or not b or a is b or a['id'] in gone or b['id'] in gone: miss.append((a_c, b_c)); continue
@@ -97,6 +114,10 @@ for z in data['blocks']:
     ks = collections.Counter(keep[i]['k'] for i in z['lots'])
     if z['lots']: z['k'] = 'buy' if ks['buy'] or ks['dev'] else ks.most_common(1)[0][0]
 data['lots'] = keep
+kz = [z for z in data['blocks'] if z['lots']]; zm = {z['id']: i for i, z in enumerate(kz)}
+for i, z in enumerate(kz): z['id'] = i
+for l in keep: l['blk'] = zm.get(l['blk'], -1)
+data['blocks'] = kz
 for b in data.get('bld', []): b[3] = remap.get(b[3], -1)
 data['key'] = key
 data['edits'] = {'v': 1, 'lots': E['lots'], 'merge': [], 'erase': E['erase']}  # merges are baked in
@@ -109,4 +130,4 @@ tpl = tpl.replace('<script>', '<script>' + pre + '</script>\n<script>', 1)
 tpl = tpl.rstrip() + '\n<script>' + ui + '</script>\n'
 out = tpl.replace('__DATA__', json.dumps(data, ensure_ascii=False, separators=(',', ':')), 1)
 open(f'{ROOT}/prototypes/{key}-monopoly.html', 'w').write(out)
-print(f'{key}: {len(keep)} lots, {len(gone)} merged, {len(E["lots"])} lot edits, {len(E["erase"])} road strokes, not matched: {miss}')
+print(f'{key}: {len(keep)} lots, {wiped_n} wiped, {len(gone) - wiped_n} merged, {len(E["lots"])} lot edits, {len(E["erase"])} road strokes, not matched: {miss}')

@@ -4,9 +4,19 @@ function edNorm(E){E=E||{};E.v=1;E.lots=E.lots||{};E.merge=E.merge||[];E.erase=E
 function edFind(Md,c){let best=null,bd=400;for(const l of Md.lots){const d=(l.c[0]-c[0])**2+(l.c[1]-c[1])**2;if(d<bd){bd=d;best=l}}return best}
 function edApply(l,e){if(e.t){l.k=e.t==='farm'?'buy':e.t;l.f=e.t==='farm'?1:0}
   if(e.n!==undefined)l.n=e.n;if(e.dev!==undefined)l.dev=e.dev;if(e.p){l.p=+e.p;l.r=Math.round(l.p*0.6)/10}}
+const segD=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy;let t=L?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
+const hit=(p,s)=>{const q=s[2];if(q.length===1)return Math.hypot(p[0]-q[0][0],p[1]-q[0][1])<s[1];for(let i=1;i<q.length;i++)if(segD(p,q[i-1],q[i])<s[1])return true;return false};
+// latest stroke of the given kinds that covers p decides: wipe ('e' roads / 'L' land) or restore ('r' / 'R')
+const wiped=(p,E,kinds)=>{let h=false;for(const s of E.erase)if(kinds.includes(s[0])&&hit(p,s))h=s[0]==='e'||s[0]==='L';return h};
+function dropWiped(Md,E){if(!E.erase.some(s=>s[0]==='L'))return;
+  const keep=Md.lots.filter(l=>!wiped(l.c,E,'LR'));if(keep.length===Md.lots.length)return;
+  const remap={};keep.forEach((l,i)=>{remap[l.id]=i;l.id=i});Md.lots=keep;
+  Md.blocks.forEach(b=>b.lots=b.lots.filter(i=>i in remap).map(i=>remap[i]));
+  const kb=Md.blocks.filter(b=>b.lots.length),bm={};kb.forEach((b,i)=>{bm[b.id]=i;b.id=i});Md.blocks=kb;
+  keep.forEach(l=>l.blk=l.blk in bm?bm[l.blk]:-1);(Md.bld||[]).forEach(b=>{b[3]=b[3] in remap?remap[b[3]]:-1})}
 function preEdits(Md){let E=null;try{E=JSON.parse(localStorage.getItem('hkm-edits-'+Md.key)||'null')}catch(e){}
   E=edNorm(E||JSON.parse(JSON.stringify(Md.edits||{})));window.EDITS=E;
-  for(const k in E.lots){const l=edFind(Md,k.split(',').map(Number));if(l)edApply(l,E.lots[k])}}
+  for(const k in E.lots){const l=edFind(Md,k.split(',').map(Number));if(l)edApply(l,E.lots[k])}dropWiped(Md,E)}
 //==UI==
 (function(){
 const E=window.EDITS,KEY='hkm-edits-'+M.key,save=()=>{try{localStorage.setItem(KEY,JSON.stringify(E))}catch(e){}};
@@ -33,7 +43,9 @@ document.body.insertAdjacentHTML('beforeend',`<button id="edBtn">✎ 編輯地�
 <div id="edBar" role="toolbar" aria-label="地圖編輯工具">
  <button data-t="pan" class="on" title="拖動地圖；撳一下街區就可以改">✋ 移動／改地</button>
  <button data-t="erase" title="喺路上面掃過就擦走">🧽 擦路</button>
- <button data-t="restore" title="掃返擦咗嘅路出嚟">🖌 補返</button>
+ <button data-t="restore" title="掃返擦咗嘅路出嚟">🖌 補路</button>
+ <button data-t="wipe" title="掃過多餘嘅土地就刪走（連街區、建築物）">🗑 刪地</button>
+ <button data-t="unwipe" title="掃返刪咗嘅土地出嚟">🌱 補地</button>
  <label>筆刷 <input id="edBr" type="range" min="6" max="70" value="22" style="width:80px;vertical-align:middle"></label>
  <span class="sep"></span>
  <button id="edUndo">↶ 復原</button><button id="edExp">⬇ 匯出</button><button id="edImp">⬆ 匯入</button><button id="edClr">清除全部</button>
@@ -42,22 +54,24 @@ document.body.insertAdjacentHTML('beforeend',`<button id="edBtn">✎ 編輯地�
 </div>
 <div id="edPanel" aria-live="polite">
  <b id="edTitle"></b><div id="edSub" style="color:#5E6672;font-size:12px"></div>
- <label>類型</label><select id="edT"><option value="buy">可買</option><option value="farm">農地（牛屎地）</option><option value="dev">大地產商物業</option>
+ <label>類型</label><select id="edT"><option value="buy">可買</option><option value="farm">農地</option><option value="dev">大地產商物業</option>
   <option value="park">公園／休憩用地</option><option value="gov">政府用地</option><option value="rel">宗教場所</option><option value="comm">學校及醫院</option>
   <option value="mark">地標（非賣品）</option><option value="bank">銀行</option></select>
  <label>名稱</label><input id="edN" placeholder="例如：合益廣場">
- <label>地產商（類型揀大地產商先用）</label><input id="edD" list="edDevs" placeholder="例如：新紅基地產"><datalist id="edDevs"></datalist>
+ <label>地產商（揀咗就會變大地產商物業）</label><select id="edD"></select><input id="edD2" placeholder="新地產商名稱" style="display:none;margin-top:4px">
  <label>市值（億）</label><input id="edP" type="number" min="1" step="1">
  <label>備註（俾 Claude 睇）</label><input id="edNote" placeholder="例如：沿條巷一開二">
  <div class="row"><button class="pri" id="edOk">套用</button><button id="edMerge">同另一塊合併</button><button id="edX">收起</button></div>
 </div>`);
 const msg=t=>{$('edMsg').textContent=t};
+// developers already in the game (sound-alike names); new ones typed in are added for this session
+const DEVS=['新紅基地產','致地集團','常實集團','泰古地產','迅德集團','九艙集團'];
 // government building footprints (Lands Department via CSDI): drawn from street level, names at closest zoom
-const gBld=el('g',{'pointer-events':'none'});svg.insertBefore(gBld,gBO);let gBN=null,bldBuilt=false;
+const gBld=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gBld,gBO);let gBN=null,bldBuilt=false;
 function buildBld(){if(bldBuilt||!M.bld)return;bldBuilt=true;let d='';
   M.bld.forEach(b=>{const q=b[0];d+='M'+q[0]+' '+q[1];for(let i=2;i<q.length;i+=2)d+='L'+q[i]+' '+q[i+1];d+='Z'});
   el('path',{d,fill:'rgba(70,60,45,.16)',stroke:'rgba(70,60,45,.45)','stroke-width':.7,'vector-effect':'non-scaling-stroke'},gBld);
-  gBN=el('g',{'pointer-events':'none'});svg.insertBefore(gBN,gNM);const seen={};
+  gBN=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gBN,gNM);const seen={};
   M.bld.filter(b=>b[1]).forEach(b=>{const q=b[0];let x=0,y=0;const n=q.length/2;for(let i=0;i<q.length;i+=2){x+=q[i];y+=q[i+1]}
     x/=n;y/=n;const nm=b[1].replace(/\s*(第?[0-9０-９A-ZＡ-Ｚ一二三四五六七八九十]+(座|期))+$/,'')||b[1];const near=(seen[nm]||[]).some(([a,c])=>Math.hypot(a-x,c-y)<45);if(near)return;(seen[nm]=seen[nm]||[]).push([x,y]);
     const t=el('text',{x,y,class:'bn'},gBN);t.textContent=nm})}
@@ -71,14 +85,18 @@ const BIG=6000,mk=el('mask',{id:'rmask',maskUnits:'userSpaceOnUse',x:bx0-BIG,y:b
 el('rect',{x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG,fill:'#fff'},mk);
 const gS=el('g',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round'},mk);
 const dOf=q=>q.length===1?`M${q[0][0]} ${q[0][1]}l.01 0`:'M'+pts(q);
-const drawStroke=s=>el('path',{d:dOf(s[2]),stroke:s[0]==='e'?'#000':'#fff','stroke-width':s[1]*2},gS);
+const lk=el('mask',{id:'lmask',maskUnits:'userSpaceOnUse',x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG},defs);
+el('rect',{x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG,fill:'#fff'},lk);
+const gS2=el('g',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round'},lk);
+const drawStroke=s=>{const black=s[0]==='e'||s[0]==='L',a={d:dOf(s[2]),stroke:black?'#000':'#fff','stroke-width':s[1]*2};
+  const p=el('path',a,gS);if(s[0]==='L'||s[0]==='R'){p.l2=el('path',a,gS2)}return p};
 E.erase.forEach(drawStroke);
+const setL=g=>g&&g.setAttribute('mask','url(#lmask)');
 const setMask=g=>g&&g.setAttribute('mask','url(#rmask)');
 setMask(rG.major);setMask(rG.minor);setMask(rG.foot);
+[gLand,gBlk,gLot,gBO,gNM,gLN].forEach(setL);const _bln=buildLotNames;buildLotNames=function(){_bln();setL(gLN)};
 const _bm=buildMinor,_bf=buildFoot;buildMinor=function(){_bm();setMask(rG.minor)};buildFoot=function(){_bf();setMask(rG.foot)};
-const segD=(p,a,b)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=dx*dx+dy*dy;let t=L?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)};
-const hit=(p,s)=>{const q=s[2];if(q.length===1)return Math.hypot(p[0]-q[0][0],p[1]-q[0][1])<s[1];for(let i=1;i<q.length;i++)if(segD(p,q[i-1],q[i])<s[1])return true;return false};
-function updLabels(){gRL.querySelectorAll('text').forEach(t=>{const p=[+t.getAttribute('x'),+t.getAttribute('y')];let h=false;for(const s of E.erase)if(hit(p,s))h=s[0]==='e';t.style.visibility=h?'hidden':''})}
+function updLabels(){gRL.querySelectorAll('text').forEach(t=>{const p=[+t.getAttribute('x'),+t.getAttribute('y')];t.style.visibility=wiped(p,E,'erLR')?'hidden':''})}
 updLabels();
 // merges: dashed outline so they're visible before the build joins them
 const gMg=el('g',{fill:'none',stroke:'#D33F35','stroke-width':2.5,'stroke-dasharray':'7 5','vector-effect':'non-scaling-stroke','pointer-events':'none'});
@@ -92,19 +110,22 @@ const radius=()=>+$('edBr').value*vb.w/svg.getBoundingClientRect().width;
 const r1=v=>Math.round(v*10)/10;
 function setTool(t){tool=t;document.querySelectorAll('#edBar [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
   document.body.classList.toggle('brush',brushing());cursor.setAttribute('display','none');
-  msg(t==='erase'?'喺路上面掃過就擦走（只擦路同路名，唔影響街區）':t==='restore'?'掃過擦咗嘅地方就補返':'拖動地圖，撳一下街區就可以改')}
+  msg({erase:'喺路上面掃過就擦走（只擦路同路名，唔影響街區）',restore:'掃過擦咗嘅路就補返',wipe:'掃過多餘嘅土地就刪走；街區中心被掃到就會成塊移除',unwipe:'掃過刪咗嘅土地就補返',pan:'拖動地圖，撳一下街區就可以改'}[t])}
 document.querySelectorAll('#edBar [data-t]').forEach(b=>b.onclick=()=>setTool(b.dataset.t));
 $('edBtn').onclick=()=>{on=!on;document.body.classList.toggle('editing',on);if(on){closeCard();setTool('pan');if(LOD<2)zoomAt(svg.getBoundingClientRect().width/vb.w)}
   else{document.body.classList.remove('brush');cursor.setAttribute('display','none');hidePanel()}};
 // brush painting (capture phase so the map doesn't pan)
 svg.addEventListener('pointerdown',e=>{if(!brushing()||e.button>0)return;e.stopImmediatePropagation();e.preventDefault();svg.setPointerCapture(e.pointerId);
-  cur=[tool==='erase'?'e':'r',r1(radius()),[toSvg(e.clientX,e.clientY).map(r1)]];cur.el=drawStroke(cur)},true);
+  cur=[{erase:'e',restore:'r',wipe:'L',unwipe:'R'}[tool],r1(radius()),[toSvg(e.clientX,e.clientY).map(r1)]];cur.el=drawStroke(cur)},true);
 svg.addEventListener('pointermove',e=>{if(!brushing())return;const p=toSvg(e.clientX,e.clientY),r=radius();
   cursor.setAttribute('display','');cursor.setAttribute('cx',p[0]);cursor.setAttribute('cy',p[1]);cursor.setAttribute('r',r);
-  cursor.setAttribute('stroke',tool==='erase'?'#D33F35':'#1F7A66');cursor.setAttribute('fill',tool==='erase'?'rgba(211,63,53,.12)':'rgba(31,122,102,.12)');
+  const bad=tool==='erase'||tool==='wipe';cursor.setAttribute('stroke',bad?'#D33F35':'#1F7A66');cursor.setAttribute('fill',bad?'rgba(211,63,53,.12)':'rgba(31,122,102,.12)');
   if(!cur)return;e.stopImmediatePropagation();const q=cur[2],last=q[q.length-1];
-  if(Math.hypot(p[0]-last[0],p[1]-last[1])>cur[1]/3){q.push(p.map(r1));cur.el.setAttribute('d',dOf(q))}},true);
-function endStroke(e){if(!cur)return;e.stopImmediatePropagation();const s=cur;cur=null;delete s.el;E.erase.push(s);hist.push({t:'erase'});save();updLabels();msg(`已${s[0]==='e'?'擦走':'補返'}，共 ${E.erase.length} 筆`)}
+  if(Math.hypot(p[0]-last[0],p[1]-last[1])>cur[1]/3){q.push(p.map(r1));cur.el.setAttribute('d',dOf(q));if(cur.el.l2)cur.el.l2.setAttribute('d',dOf(q))}},true);
+function updLots(){M.lots.forEach(l=>{const e=lotEl[l.id];if(e)e.style.display=wiped(l.c,E,'LR')?'none':''})}
+function endStroke(e){if(!cur)return;e.stopImmediatePropagation();const s=cur;cur=null;delete s.el;E.erase.push(s);hist.push({t:'erase'});save();updLabels();
+  if(s[0]==='L'||s[0]==='R')updLots();
+  msg({e:'已擦走條路',r:'已補返條路',L:'已刪走呢幅地（重新載入後遊戲入面都會消失）',R:'已補返呢幅地'}[s[0]])}
 svg.addEventListener('pointerup',endStroke,true);svg.addEventListener('pointercancel',endStroke,true);
 svg.addEventListener('pointerleave',()=>cursor.setAttribute('display','none'));
 // lot editing
@@ -120,18 +141,22 @@ function pickLot(id){const l=M.lots[id];
   $('edTitle').textContent=l.n||'未命名街區';$('edSub').textContent=`#${l.id} · ${l.a} · ${l.m2.toLocaleString()} 平方米 · ${(l.s||[]).join(' × ')}`;
   const ed=E.lots[l.c.join(',')]||{};
   $('edT').value=typeOf(l);$('edN').value=l.n||'';$('edD').value=l.dev||'';$('edP').value=l.p;$('edNote').value=ed.note||'';
-  $('edDevs').innerHTML=[...new Set(M.lots.map(x=>x.dev).filter(Boolean))].map(d=>`<option value="${d}">`).join('');
+  const devs=[...new Set(DEVS.concat(M.lots.map(x=>x.dev).filter(Boolean)))];
+  $('edD').innerHTML='<option value="">（唔適用）</option>'+devs.map(d=>`<option>${d}</option>`).join('')+'<option value="__new">＋ 新增地產商…</option>';
+  $('edD').value=l.dev&&devs.includes(l.dev)?l.dev:'';$('edD2').style.display='none';$('edD2').value='';
   $('edPanel').style.display='block'}
 function hidePanel(){$('edPanel').style.display='none';gSel.setAttribute('points','');selL=null;mergeFrom=null}
 $('edX').onclick=hidePanel;
+$('edD').onchange=()=>{const n=$('edD').value==='__new';$('edD2').style.display=n?'':'none';if(n)$('edD2').focus();else if($('edD').value)$('edT').value='dev'};
 $('edOk').onclick=()=>{const l=selL;if(!l)return;const key=l.c.join(','),t=$('edT').value;
-  const e={t,n:$('edN').value.trim(),dev:t==='dev'?($('edD').value.trim()||'大地產商'):'',p:Math.max(1,Math.round(+$('edP').value||l.p))};
+  const dv=$('edD').value==='__new'?$('edD2').value.trim():$('edD').value;if(dv&&dv!=='__new'&&!DEVS.includes(dv))DEVS.push(dv);
+  const e={t:dv&&t!=='dev'&&(t==='buy'||t==='farm')?'dev':t,n:$('edN').value.trim(),dev:(dv&&(t==='dev'||t==='buy'||t==='farm'))?dv:(t==='dev'?'大地產商':''),p:Math.max(1,Math.round(+$('edP').value||l.p))};
   const note=$('edNote').value.trim();if(note)e.note=note;
   hist.push({t:'lot',id:l.id,key,prev:snap(l),old:E.lots[key]});E.lots[key]=e;edApply(l,e);repaint(l);save();
   $('edTitle').textContent=l.n||'未命名街區';msg('已套用（名稱標籤重新載入後更新）')};
 $('edMerge').onclick=()=>{if(!selL)return;mergeFrom=selL.id;msg('撳隔籬嗰塊街區嚟合併')};
 $('edUndo').onclick=()=>{const h=hist.pop();if(!h){msg('冇嘢可以復原');return}
-  if(h.t==='erase'){E.erase.pop();gS.lastChild&&gS.removeChild(gS.lastChild);updLabels()}
+  if(h.t==='erase'){const s=E.erase.pop();const p=gS.lastChild;if(p){if(p.l2)p.l2.remove();p.remove()}updLabels();if(s&&(s[0]==='L'||s[0]==='R'))updLots()}
   else if(h.t==='merge'){E.merge.pop();drawMerges()}
   else if(h.t==='lot'){const l=M.lots[h.id];Object.assign(l,h.prev);if(h.old)E.lots[h.key]=h.old;else delete E.lots[h.key];repaint(l);
     if(hist.length&&hist[hist.length-1].t==='merge'){const m=hist.pop();E.merge.pop();drawMerges()}}

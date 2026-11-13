@@ -72,7 +72,7 @@ for b, c in pairs:
     prem = max([PREM.get(s, 1) for s in b['s']] + [1])
     price = bprice(c.area, b['a'], prem)
     if k == 'dev': price = round(price * 1.3)
-    if b.get('f'): price = max(3, round(price * 0.45))  # 牛屎地 discount
+    if b.get('f'): price = max(3, round(price * 0.45))  # farmland discount
     rp = c.representative_point()
     zi = [int(j) for j in ztree.query(rp) if zones[j].contains(rp)]
     L_out.append({'f': b.get('f', 0), 'id': b['id'], 'blk': zi[0] if zi else -1, 'k': k, 'n': nm, 'also': also, 'dev': dev, 'a': b['a'], 's': b['s'][:2], 'm2': b['m2'], 'p': price,

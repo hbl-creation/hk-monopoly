@@ -111,7 +111,7 @@ const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.set
 const pts=a=>a.map(p=>p[0]+','+p[1]).join(' ');
 const KIND={buy:{fill:'#FBFAF6',tag:'可買街區'},dev:{fill:'#5B3F8C',tag:'大地產商物業',head:'#5B3F8C'},park:{fill:'#A9D18E',tag:'公園及休憩用地',col:'#3E7A2C',head:'#5E9A47'},gov:{fill:'#C3C6CC',tag:'政府用地',col:'#4A505A',head:'#6B717C'},
   rel:{fill:'#CDB6E4',tag:'宗教場所',col:'#5B3C80',head:'#7A58A3'},comm:{fill:'#B8D3EC',tag:'學校及醫院',col:'#2D5A86',head:'#4A78A6'},
-  farm:{fill:'#DDE3B4',tag:'農地（牛屎地）',col:'#5E6A1F',head:'#7C8A2E'},mark:{fill:'#F2C46B',tag:'地標',col:'#7A4E00',head:'#B78716'},bank:{fill:'#1F7A66',tag:'銀行',col:'#0F4D3F',head:'#1F7A66'}};
+  farm:{fill:'#DDE3B4',tag:'農地',col:'#5E6A1F',head:'#7C8A2E'},mark:{fill:'#F2C46B',tag:'地標',col:'#7A4E00',head:'#B78716'},bank:{fill:'#1F7A66',tag:'銀行',col:'#0F4D3F',head:'#1F7A66'}};
 const AREA_TINT={'元朗市中心':'#FBF6EC','元朗舊墟':'#F8F3EA','朗屏':'#F4F6F0','水邊圍':'#F1F3F5','南邊圍':'#F6F1F1','屏山':'#F3F5F3','元朗東':'#F5F4EF'};
 const FARM='#DDE3B4';M.blocks.forEach(b=>{const f=b.lots.filter(i=>M.lots[i].f).length;b.f=f*2>b.lots.length?1:0});
 const baseFill=o=>o.f?FARM:(AREA_TINT[o.a]||'#FBFAF6');
@@ -208,7 +208,7 @@ function paintBlock(bid){const b=M.blocks[bid];if(b.k!=='buy')return;const sh={m
 function paintAll(){M.lots.forEach(l=>paintLot(l.id));M.blocks.forEach(b=>paintBlock(b.id))}
 function newGame(){rate=RATE;S={m:1,cash:{me:START,rv:START},debt:0,own:{},pm:{},rm:{},sel:null,log:[]};AREAS.forEach(a=>{S.pm[a]=1;S.rm[a]=1});
   for(const a of ['屏山','南邊圍','元朗東']){const c=BUY.filter(l=>l.a===a&&l.k==='buy'&&l.p<8);for(let i=0;i<2;i++){const l=c[Math.floor(Math.random()*c.length)];if(l&&!S.own[l.id]&&S.cash.rv>=l.p){S.own[l.id]='rv';S.cash.rv-=l.p}}}
-  S.log=['第一章：你帶住 60 億嚟到元朗。先喺周邊收平價農地（牛屎地，淺綠色），再打入市中心；縮細睇分區，撳一下放大逐個街區買賣；紫色係大地產商物業，可以用兩倍價收購；銀行可以借錢。'];
+  S.log=['第一章：你帶住 60 億嚟到元朗。先喺周邊收平價農地（淺綠色），再打入市中心；縮細睇分區，撳一下放大逐個街區買賣；紫色係大地產商物業，可以用兩倍價收購；銀行可以借錢。'];
   $('end').hidden=true;paintAll();closeCard();hud()}
 function hud(){$('month').textContent=`第 ${S.m} 個月 / 共 ${MONTHS} 個月`;
   $('meCash').textContent=fmt(S.cash.me);$('meDebt').textContent=fmt(S.debt);$('meDebt').classList.toggle('on',S.debt>0);$('rvCash').textContent=fmt(S.cash.rv);
