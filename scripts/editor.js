@@ -64,6 +64,14 @@ document.body.insertAdjacentHTML('beforeend',`<button id="edBtn">✎ 編輯地�
  <div class="row"><button class="pri" id="edOk">套用</button><button id="edMerge">同另一塊合併</button><button id="edX">收起</button></div>
 </div>`);
 const msg=t=>{$('edMsg').textContent=t};
+// outside the playable map: neutral slate instead of sea blue; real water is drawn as its own layer
+const OFFMAP='#4E5A63',WATER='#BCD7E3';document.head.insertAdjacentHTML('beforeend',`<style>body{background:${OFFMAP}!important}</style>`);
+[...svg.children].filter(e=>e.tagName==='rect'&&e.getAttribute('fill')==='#BCD7E3').forEach(e=>e.setAttribute('fill',OFFMAP));
+// holes in the land outline are unmapped gaps, not water: fill them; real water comes from M.water
+if(M.water){gLand.innerHTML='';M.land.forEach(r=>el('path',{d:'M'+pts(r[0])+'Z',fill:'#E9E6DD'},gLand))}
+if(M.water){const gW=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gW,gBlk);let d='';
+  M.water.forEach(q=>{d+='M'+q[0]+' '+q[1];for(let i=2;i<q.length;i+=2)d+='L'+q[i]+' '+q[i+1];d+='Z'});
+  el('path',{d,fill:WATER,stroke:'#9CC1D2','stroke-width':.8,'vector-effect':'non-scaling-stroke'},gW)}
 // developers already in the game (sound-alike names); new ones typed in are added for this session
 // owners from the game design doc (香港地產遊戲設計文件): 大地產商 / 虛構對手 / 小型業主
 // read from data/companies.json (embedded by build_html.py) — edit names there, not here

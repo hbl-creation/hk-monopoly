@@ -120,6 +120,8 @@ for l in keep: l['blk'] = zm.get(l['blk'], -1)
 data['blocks'] = kz
 for b in data.get('bld', []): b[3] = remap.get(b[3], -1)
 data['key'] = key
+wp = f'{ROOT}/data/{key}-water.json'
+if os.path.exists(wp): data['water'] = json.load(open(wp))['w']  # rivers / ponds drawn on their own; outside-map colour is free
 data['companies'] = json.load(open(f'{ROOT}/data/companies.json'))  # single owner list, from the design doc
 data['edits'] = {'v': 1, 'lots': E['lots'], 'merge': [], 'erase': E['erase']}  # merges are baked in
 
