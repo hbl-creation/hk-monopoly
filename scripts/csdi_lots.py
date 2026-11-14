@@ -47,8 +47,10 @@ keep_union = unary_union([OG[i] for i in keep_ids]).buffer(0.5)
 
 # 1. project lots, drop the parts under kept plots, give each to the zone + old plot it overlaps most
 G = []  # dicts: g, zone, char, attrs
+unused = []  # every government lot (projected); the build uses the ones no plot covers to fill gaps in the play area
 for f in feats:
     g = P(shape(f['geometry'])).buffer(0)
+    if g.geom_type == 'Polygon' and g.area >= 15: unused.append([round(v, 1) for xy in g.simplify(0.4).exterior.coords[:-1] for v in xy])
     if g.is_empty or g.area < 3: continue
     g = g.difference(keep_union)
     parts = list(g.geoms) if g.geom_type in ('MultiPolygon', 'GeometryCollection') else [g]
@@ -58,7 +60,8 @@ for f in feats:
         ov = [(a, i) for a, i in ov if a > 1 and old[i]['k'] not in KEEP]
         if not ov or sum(a for a, _ in ov) < q.area * 0.1:  # in a gap between old plots: borrow from the nearest one
             near = [(OG[i].distance(q), i) for i in otree.query(q.buffer(40)) if old[i]['k'] not in KEEP]
-            if not near: continue  # outside the playable map
+            if not near:
+                continue  # outside the playable map
             ov = [(q.area, min(near)[1])]
         best = max(ov)[1]; o = old[best]
         zv = [(ZG[i].intersection(q).area, i) for i in ztree.query(q)]
@@ -149,6 +152,7 @@ for z in zones:
     if z['lots']: z['k'] = 'buy' if ks['buy'] or ks['dev'] else ks.most_common(1)[0][0]
 data['lots'] = out
 json.dump(data, open(f'{ROOT}/data/{key}4.json', 'w'), ensure_ascii=False, separators=(',', ':'))
+json.dump({'g': [u for u in unused if u]}, open(f'{ROOT}/data/{key}-gaplots.json', 'w'), separators=(',', ':'))
 c = collections.Counter((l['k'], l['f']) for l in out)
 print(f'{len(old)} old plots -> {len(out)} plots', dict(c))
 print('buy plot m2 quartiles', sorted(l['m2'] for l in out if l['k'] == 'buy')[len(out) // 8 :: len(out) // 4][:4])

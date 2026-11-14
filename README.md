@@ -35,3 +35,8 @@
 ## 地段界線（街區跟真實地段）
 `scripts/csdi_lots.py` 由 CSDI 下載地政總署「Lot」地段界線，將可買／地產商街區重新劃分：每個地段歸入重疊最多嘅分區，再將相鄰、性質相同（一般／農地／同一地產商）嘅地段合併到適合遊戲嘅大小（市區約 3,500 平方米、農地約 9,000 平方米），地段永遠唔會切開。公園、政府、學校、宗教、地標、銀行保留原本形狀。冇地段嘅政府土地（斜坡、巷、路邊）唔再係街區。輸出 `data/<區>4.json`，`build_html.py` 有 4 就用 4。
 流程：`yuenlong.py` → `yuenlong3.py` → `csdi_buildings.py` → `csdi_lots.py` → `build_html.py`
+
+## 河道、空隙同揀唔到嘅土地
+- `scripts/osm_water.py`：魚塘、河流用 OpenStreetMap；河道再加渠務署「Engineered Channel」（CSDI）中線，按記錄闊度畫出真實河面
+- `csdi_lots.py` 另外輸出 `data/<區>-gaplots.json`（全部政府地段）；`build_html.py` 修剪範圍時，可玩範圍入面未有地塊覆蓋嘅政府地段會補做地塊
+- 成個可玩範圍都畫做陸地；唔係地塊嘅土地（政府土地、巷、斜坡）用較深嘅灰色，玩家一睇就知揀唔到；範圍外面係深灰藍色

@@ -1,4 +1,4 @@
-"""Water polygons (rivers, nullahs, fishponds) from OpenStreetMap for a district, in game coordinates.
+"""Water polygons: fishponds/rivers from OpenStreetMap + DSD engineered channels (CSDI) for a district, in game coordinates.
 
     python3 scripts/osm_water.py yuenlong 114.010 114.045 22.433 22.458
 Writes data/<key>-water.json: {"w": [[x,y,x,y,...], ...]}
@@ -22,5 +22,21 @@ for f in json.load(open(src))['features']:
     for q in (g.geoms if hasattr(g, 'geoms') else [g]):
         if q.geom_type == 'Polygon' and q.area > 30:
             out.append([round(v, 1) for xy in q.simplify(0.8).exterior.coords[:-1] for v in xy])
+# Drainage Services Department "Engineered Channel" centrelines (CSDI), buffered by their recorded width (mm)
+import urllib.request
+from shapely.ops import unary_union
+DSD = ('https://portal.csdi.gov.hk/server/services/common/dsd_rcd_1742963120722_16615/MapServer/WFSServer'
+       '?service=wfs&version=2.0.0&request=GetFeature&typeNames=csdi:EngineeredChannel&count=2000'
+       f'&outputFormat=geojson&srsName=EPSG:4326&bbox={LAT_A - .003},{LON_A - .003},{LAT_B + .003},{LON_B + .003},EPSG:4326')
+ch = []
+for f in json.load(urllib.request.urlopen(DSD, timeout=300))['features']:
+    w = (float(f['properties'].get('WIDTH') or 0) / 1000) or 8
+    ch.append(P(shape(f['geometry'])).buffer(max(2, min(w, 120)) / 2, cap_style=2))
+if ch:
+    u = unary_union(ch)
+    for q in (u.geoms if hasattr(u, 'geoms') else [u]):
+        if q.geom_type == 'Polygon' and q.area > 30:
+            out.append([round(v, 1) for xy in q.simplify(0.8).exterior.coords[:-1] for v in xy])
+    print('DSD channels:', len(ch))
 json.dump({'w': out}, open(f'{ROOT}/data/{key}-water.json', 'w'), separators=(',', ':'))
 print(key, len(out), 'water polygons')

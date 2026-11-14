@@ -69,7 +69,8 @@ const msg=t=>{$('edMsg').textContent=t};
 const OFFMAP='#4E5A63',WATER='#BCD7E3';document.head.insertAdjacentHTML('beforeend',`<style>body{background:${OFFMAP}!important}</style>`);
 [...svg.children].filter(e=>e.tagName==='rect'&&e.getAttribute('fill')==='#BCD7E3').forEach(e=>e.setAttribute('fill',OFFMAP));
 // holes in the land outline are unmapped gaps, not water: fill them; real water comes from M.water
-if(M.water){gLand.innerHTML='';M.land.forEach(r=>el('path',{d:'M'+pts(r[0])+'Z',fill:'#E9E6DD'},gLand))}
+const NOLOT='#BDB8AD';  // land that isn't a plot (lanes, slopes, government land): darker = not buyable
+gLand.innerHTML='';M.land.forEach(r=>el('path',{d:'M'+pts(r[0])+'Z',fill:NOLOT},gLand));
 if(M.water){const gW=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gW,gBlk);let d='';
   M.water.forEach(q=>{d+='M'+q[0]+' '+q[1];for(let i=2;i<q.length;i+=2)d+='L'+q[i]+' '+q[i+1];d+='Z'});
   el('path',{d,fill:WATER,stroke:'#9CC1D2','stroke-width':.8,'vector-effect':'non-scaling-stroke'},gW)}

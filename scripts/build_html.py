@@ -163,6 +163,31 @@ if any(s[0] == 'L' for s in E['erase']):
     parts = sorted(blob.geoms if blob.geom_type == 'MultiPolygon' else [blob], key=lambda p: -p.area)
     main = [p for p in parts if p.area >= parts[0].area * 0.04]  # drop stray islands left by rough wiping
     play = unary_union([Polygon(p.exterior) for p in main])     # no holes inside the play area
+    cl = unary_union([p.buffer(0) for p in polys]).buffer(160).buffer(-150)   # close bays/gaps between plots
+    play = unary_union([play] + [Polygon(g.exterior) for g in (cl.geoms if hasattr(cl, 'geoms') else [cl]) if play.intersects(g)])
+    gp = f'{ROOT}/data/{key}-gaplots.json'
+    if os.path.exists(gp):  # government lots inside the play area that no plot covers yet -> new plots
+        have = unary_union(polys).buffer(1)
+        cand = []
+        for q in json.load(open(gp))['g']:
+            g = Polygon(list(zip(q[0::2], q[1::2]))).buffer(0)
+            if g.area >= 15 and play.contains(g.representative_point()) and g.intersection(have).area < 0.3 * g.area:
+                cand.append(g.difference(have))
+        cu = unary_union(cand).buffer(1).buffer(-1) if cand else None
+        added = 0
+        for g in (cu.geoms if cu is not None and hasattr(cu, 'geoms') else ([cu] if cu is not None else [])):
+            if g.geom_type != 'Polygon' or g.area < 60: continue
+            rp = g.representative_point()
+            nb = min(keep, key=lambda l: Polygon(l['g']).distance(rp))
+            ppm = nb['p'] / max(1, nb['m2'])
+            keep.append({'f': nb.get('f', 0) if nb['k'] == 'buy' else 0, 'id': len(keep), 'blk': nb['blk'], 'k': 'buy', 'n': '', 'also': [], 'dev': '',
+                         'a': nb['a'], 's': nb['s'], 'm2': round(g.area), 'p': max(3, round(ppm * g.area)), 'r': max(0.1, round(ppm * g.area * 0.06, 1)),
+                         'c': [round(rp.x, 1), round(rp.y, 1)], 'nm': 0, 'gap': 1,
+                         'g': [[round(x, 1), round(y, 1)] for x, y in g.simplify(0.6).exterior.coords[:-1]]})
+            data['blocks'][nb['blk']]['lots'].append(keep[-1]['id']) if 0 <= nb['blk'] < len(data['blocks']) else None
+            polys.append(g); added += 1
+        data['lots'] = keep
+        print('gap lots added as plots:', added)
     stray = [l for l, p in zip(keep, polys) if not play.buffer(5).contains(p.representative_point())]
     if stray:
         sid = {l['id'] for l in stray}
@@ -175,7 +200,7 @@ if any(s[0] == 'L' for s in E['erase']):
         data['lots'] = keep
     edge = play.buffer(35).simplify(2)                          # land shown around the plots
     def ring(g): return [[round(x, 1), round(y, 1)] for x, y in g.exterior.coords[:-1]]
-    land = unary_union([Polygon(r[0], r[1:]).buffer(0) for r in data['land']]).intersection(edge)
+    land = edge  # the whole play area is land; non-plot land is drawn darker in the page (not buyable)
     data['land'] = [[ring(p)] + [[[round(x, 1), round(y, 1)] for x, y in h.coords[:-1]] for h in p.interiors]
                     for p in (land.geoms if land.geom_type == 'MultiPolygon' else [land]) if p.geom_type == 'Polygon' and p.area > 50]
     rz = edge.buffer(60)                                        # keep the boundary roads (e.g. the highway) whole-ish
