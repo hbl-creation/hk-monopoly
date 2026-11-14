@@ -35,6 +35,9 @@ out = shell.replace('<script>', '<script>' + pre + '</script>\n<script>', 1)
 out = out.replace('__MAP__', 'const M=__DATA__;preEdits(M);' + mapjs, 1)
 out = out.replace('__GAME__', rd('scripts/ch1-game.js'), 1)
 out = out.rstrip() + '\n<script>' + ui + '</script>\n'
+import datetime
+stamp = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).strftime('%Y-%m-%d %H:%M')
+out = out.replace('__BUILD__', stamp)
 out = out.replace('__DATA__', blob, 1)
 open(f'{ROOT}/prototypes/{key}-ch1.html', 'w', encoding='utf-8').write(out)
 

@@ -127,13 +127,19 @@ const dOf=q=>q.length===1?`M${q[0][0]} ${q[0][1]}l.01 0`:'M'+pts(q);
 const lk=el('mask',{id:'lmask',maskUnits:'userSpaceOnUse',x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG},defs);
 el('rect',{x:bx0-BIG,y:by0-BIG,width:bx1-bx0+2*BIG,height:by1-by0+2*BIG,fill:'#fff'},lk);
 const gS2=el('g',{fill:'none','stroke-linecap':'round','stroke-linejoin':'round'},lk);
-const drawStroke=s=>{const black=s[0]==='e'||s[0]==='L',a={d:dOf(s[2]),stroke:black?'#000':'#fff','stroke-width':s[1]*2};
+const _drawStroke=s=>{const black=s[0]==='e'||s[0]==='L',a={d:dOf(s[2]),stroke:black?'#000':'#fff','stroke-width':s[1]*2};
   const p=el('path',a,gS);if(s[0]==='L'||s[0]==='R'){p.l2=el('path',a,gS2)}return p};
+// Masks are expensive to paint (Safari/iPhone renders an offscreen image per masked layer on every redraw), so a
+// layer only carries a mask while that mask actually holds edit strokes; otherwise the mask is a no-op and is dropped.
+const hasL=()=>gS2.childElementCount>0,hasR=()=>gS.childElementCount>0;
+const setL=g=>{if(!g)return;g.dataset.lm=1;if(hasL())g.setAttribute('mask','url(#lmask)');else g.removeAttribute('mask')};
+const setMask=g=>{if(!g)return;g.dataset.rm=1;if(hasR())g.setAttribute('mask','url(#rmask)');else g.removeAttribute('mask')};
+function syncMasks(){svg.querySelectorAll('[mask="url(#lmask)"],[data-lm]').forEach(setL);svg.querySelectorAll('[mask="url(#rmask)"],[data-rm]').forEach(setMask)}
+const drawStroke=s=>{const p=_drawStroke(s);syncMasks();return p};
 E.erase.forEach(drawStroke);
-const setL=g=>g&&g.setAttribute('mask','url(#lmask)');
-const setMask=g=>g&&g.setAttribute('mask','url(#rmask)');
 setMask(rG.major);setMask(rG.minor);setMask(rG.foot);
 [gLand,gBlk,gLot,gBO,gNM,gLN].forEach(setL);const _bln=buildLotNames;buildLotNames=function(){_bln();setL(gLN)};
+const _bbl=buildBld;buildBld=function(){_bbl();syncMasks()};syncMasks();
 const _bm=buildMinor,_bf=buildFoot;buildMinor=function(){_bm();setMask(rG.minor)};buildFoot=function(){_bf();setMask(rG.foot)};
 function updLabels(){gRL.querySelectorAll('text').forEach(t=>{const p=[+t.getAttribute('x'),+t.getAttribute('y')];t.style.visibility=wiped(p,E,'erLR')?'hidden':''})}
 updLabels();

@@ -67,6 +67,12 @@ with a CSS transform (GPU, no redraw), and `apply()` redraws once the gesture pa
 60 fps while dragging. Trade-off: on a long drag the newly revealed edge stays blank until the finger pauses.
 `svg.getBoundingClientRect` is overridden to return the untransformed box during a gesture, so the editor's brush
 maths still works. The map page (`yuenlong-monopoly.html`) picks this up the next time `build_html.py` runs.
+Still laggy on Herbert's iPhone 16 Pro after that, so (Nov 2026) `editor.js` now only attaches the edit masks
+(`#lmask` land wipes, `#rmask` road erases) to a layer while that mask actually holds strokes — the map has 4 road
+erase strokes and no land wipes, so ~9 layers were painting a no-op mask (Safari renders an offscreen image per masked
+layer on every redraw). Pixel-identical output; painting a new stroke in the editor re-attaches the mask
+(`syncMasks`). The menu shows a build stamp (`版本：…`, set by `build_ch1.py`) so Herbert can tell which build his phone
+has. Not yet verified on a real iPhone — no WebKit browser in the cloud workspace.
 
 Game state lives only in `S` (saved to localStorage `hkm-ch1-save-yuenlong`); map data `M` is read-only — starting
 plots, 陸國集團's plots, small owners and rivals are assigned at game start, never written into the map. Company

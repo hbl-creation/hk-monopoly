@@ -464,7 +464,7 @@ function help(){modal({k:'玩法簡介',t:'點樣玩',cls:'tall',h:`<p><b>每回
   <p class="dim">試玩版數值：審批 ${CFG.APPROVE_MONTHS} 個月、村屋工期 ${USES.village.months} 個月、住宅 ${USES.res.months} 個月（設計文件：審批 3–9 個月、工期 12–36 個月）。地價未按政府數據重新定價。</p>`,b:[{l:'明白',c:'primary'}]})}
 function legend(){const it=(c,t,x)=>`<div class="lgd"><i style="background:${c}${x||''}"></i>${t}</div>`;
   modal({k:'地圖圖例',t:'顏色代表乜',h:`<div class="lgds">${it('#D33F35','你嘅地')}${it('#8E1F18','你落成嘅項目')}${it('repeating-linear-gradient(45deg,#D33F35 0 4px,#f1b3ae 4px 8px)','施工中')}${it('#2E5C9A',N.yc)}${it('#D98A1E',N.kw)}${it('#7DB5AE','小型業主')}${it('#5B3F8C','大地產商')}${it('#B9ADA3','已賣俾散戶')}${it('#DDE3B4','農地')}${it('#FBFAF6','市區可買地',';border:1px solid #bbb')}${it('#DDE3B4','發展區內農地',';outline:2px dashed #B78716;outline-offset:-2px')}${it('#A9D18E','公園')}${it('#C3C6CC','政府')}${it('#B8D3EC','學校醫院')}${it('#1F7A66','銀行')}</div><p class="dim">黑色虛線框＝申請中或者已批未動工。縮細睇分區，撳一下放大逐塊睇。</p>`,b:[{l:'收到',c:'primary'}]})}
-function menu(){modal({k:'選單',t:'香港地產大富翁',h:`<p class="dim">第一章 · 元朗 · 試玩版（${CFG.MONTHS} 個月）。進度自動存喺呢部機。</p>`,cls:'menu',
+function menu(){modal({k:'選單',t:'香港地產大富翁',h:`<p class="dim">第一章　元朗　試玩版（${CFG.MONTHS} 個月）。進度自動存喺呢部機。<br>版本：__BUILD__</p>`,cls:'menu',
   b:[{l:'玩法簡介',f:help},{l:'地圖圖例',f:legend},{l:'重新開始',f:()=>modal({k:'重新開始',t:'由頭嚟過？',h:'<p>而家嘅進度會冇咗。</p>',b:[{l:'重新開始',c:'primary',f:()=>newGame()},{l:'取消'}]})},{l:'✎ 編輯地圖',f:()=>$('edBtn')&&$('edBtn').click()},{l:'返回遊戲',c:'primary'}]})}
 // 「全區」：對準可玩範圍（紅框），預留頂部資料列同底部分頁列
 fit=function(){const r=svg.getBoundingClientRect(),P=(M.play||[]).flat();let x0=bx0,y0=by0,x1=bx1,y1=by1;
