@@ -136,9 +136,13 @@ if os.path.exists(bp):
             if l['n'] in ('農地', '空地'): l['n'] = ''
         elif l['k'] == 'buy' and not l.get('f') and l['n'] == '空地' and cover[l['id']] > 0.12 * l['m2']: l['n'] = ''
     print('farmland/empty labels corrected by building cover:', fixed)
+    FAC = ('垃圾', '公廁', '廁所', '浴室', '變電站', '泵房', '電話機樓', '配水庫', '抽水站', '警崗', '水缸', '小販')
     for l in live:
         ns = []
-        for _, n in sorted(names[l['id']], reverse=True):
+        for a_, n in sorted(names[l['id']], reverse=True):
+            if any(k in n for k in FAC):  # small facility: names nothing; a utility plot if it fills most of the lot
+                if a_ > 0.4 * l['m2'] and l['k'] == 'buy' and not l['n']: l['k'], l['n'] = 'gov', n
+                continue
             if n not in ns: ns.append(n)
         if not ns: continue
         if not l['n'] and l['k'] in ('buy', 'dev'): l['n'] = ns[0]
@@ -216,11 +220,14 @@ if any(s[0] == 'L' for s in E['erase']):
         hits = sorted(((BP[i][0].intersection(q).area, BP[i][1]) for i in btree.query(q)), reverse=True)
         if not hits or hits[0][0] < 60: return '', 'buy'
         n = hits[0][1]
+        if any(k in n for k in ('垃圾', '公廁', '廁所', '浴室', '變電站', '泵房', '電話機樓', '配水庫', '抽水站', '警崗', '水缸', '小販')):
+            # small facilities: a government plot only if the facility fills most of it, never a plot's name otherwise
+            return (n, 'gov') if hits[0][0] > 0.4 * q.area else ('', 'buy')
         if n in MARKS: return n, 'mark'
         if any(k in n for k in ('學校', '中學', '小學', '書院', '幼稚園', '醫院', '診所', '健康院')): return n, 'comm'
         if any(k in n for k in ('公園', '遊樂場', '花園')): return n, 'park'
         if any(k in n for k in ('廟', '教堂', '教會', '寺', '祠')): return n, 'rel'
-        if any(k in n for k in ('游泳池', '體育館', '運動場', '街市', '劇院', '大會堂', '圖書館', '政府', '警署', '消防', '郵政', '社區會堂', '康樂', '中心', '泵房', '變電站', '水務', '渠務')): return n, 'gov'
+        if any(k in n for k in ('游泳池', '體育館', '運動場', '街市', '劇院', '大會堂', '圖書館', '政府', '警署', '消防', '郵政', '社區會堂', '康樂', '中心', '水務', '渠務')): return n, 'gov'
         return n, 'buy'
     for g in sorted((free.geoms if hasattr(free, 'geoms') else [free]), key=lambda g: -g.area):
         if g.geom_type != 'Polygon' or g.area < 200 or g.area / max(1, g.length) < 4: continue  # skip verges/slivers
