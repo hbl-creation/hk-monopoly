@@ -200,27 +200,17 @@ if any(s[0] == 'L' for s in E['erase']):
         data['lots'] = keep
     edge = play.buffer(35).simplify(2)                          # land shown around the plots
     def ring(g): return [[round(x, 1), round(y, 1)] for x, y in g.exterior.coords[:-1]]
-    land = edge  # the whole play area is land; non-plot land is drawn darker in the page (not buyable)
-    data['land'] = [[ring(p)] + [[[round(x, 1), round(y, 1)] for x, y in h.coords[:-1]] for h in p.interiors]
-                    for p in (land.geoms if land.geom_type == 'MultiPolygon' else [land]) if p.geom_type == 'Polygon' and p.area > 50]
-    rz = edge.buffer(60)                                        # keep the boundary roads (e.g. the highway) whole-ish
-    nr = []
-    for r in data['roads']:
-        segs = []
-        for line in r['l']:
-            if len(line) < 2: continue
-            g = LineString(line).intersection(rz)
-            for q in (g.geoms if hasattr(g, 'geoms') else [g]):
-                if q.geom_type == 'LineString' and q.length > 3: segs.append([[round(x, 1), round(y, 1)] for x, y in q.coords])
-        if segs: r['l'] = segs; nr.append(r)
-    data['roads'] = nr
-    data['labels'] = [t for t in data['labels'] if edge.contains(Point(t[1], t[2]))]
-    if 'bld' in data:
-        data['bld'] = [b for b in data['bld'] if edge.contains(Point(b[0][0], b[0][1]))]
-    if 'water' in data:
-        nw = []
+    # outside the play area the real map stays (land, roads, buildings, water) and the page darkens it
+    land = unary_union([Polygon(r[0]).buffer(0) for r in data['land']] + [edge])
+    data['land'] = [[ring(p)] for p in (land.geoms if land.geom_type == 'MultiPolygon' else [land]) if p.geom_type == 'Polygon' and p.area > 50]
+    data['play'] = [ring(p) for p in (edge.geoms if edge.geom_type == 'MultiPolygon' else [edge]) if p.geom_type == 'Polygon']
+    # plots that were cut away stay as background shapes under the veil (not playable), so the map still reads
+    data['ctx'] = [[[round(x, 1), round(y, 1)] for x, y in Polygon(l['g']).simplify(1.5).exterior.coords[:-1]]
+                   for l in L if l['id'] in gone and not edge.contains(Point(l['c']))]
+    if 'water' in data:  # keep water on land only (drops stray specks), inside and outside the play area
+        lb = land.buffer(2); nw = []
         for w in data['water']:
-            g = Polygon(list(zip(w[0::2], w[1::2]))).buffer(0).intersection(edge).intersection(land.buffer(2))
+            g = Polygon(list(zip(w[0::2], w[1::2]))).buffer(0).intersection(lb)
             for q in (g.geoms if hasattr(g, 'geoms') else [g]):
                 if q.geom_type == 'Polygon' and q.area > 30: nw.append([round(v, 1) for xy in q.exterior.coords[:-1] for v in xy])
         data['water'] = nw

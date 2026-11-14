@@ -69,6 +69,15 @@ const msg=t=>{$('edMsg').textContent=t};
 const OFFMAP='#4E5A63',WATER='#BCD7E3';document.head.insertAdjacentHTML('beforeend',`<style>body{background:${OFFMAP}!important}</style>`);
 [...svg.children].filter(e=>e.tagName==='rect'&&e.getAttribute('fill')==='#BCD7E3').forEach(e=>e.setAttribute('fill',OFFMAP));
 // holes in the land outline are unmapped gaps, not water: fill them; real water comes from M.water
+// outside the play area: the map still shows, under a dark veil, so players see it can't be played
+if(M.play){const B=8000,veil=el('path',{d:`M${bx0-B} ${by0-B}H${bx1+B}V${by1+B}H${bx0-B}Z`+M.play.map(r=>'M'+pts(r)+'Z').join(''),
+  'fill-rule':'evenodd',fill:'rgba(30,38,47,.62)','pointer-events':'none'});
+  const edge=el('path',{d:M.play.map(r=>'M'+pts(r)+'Z').join(''),fill:'none',stroke:'#F2C46B','stroke-width':2,'stroke-dasharray':'8 5','vector-effect':'non-scaling-stroke','pointer-events':'none'});
+  const top=()=>[veil,edge,gSel,typeof gMg!=='undefined'?gMg:null,typeof cursor!=='undefined'?cursor:null];
+  const lift=()=>top().forEach(g=>g&&svg.appendChild(g));setTimeout(lift,0);
+  new MutationObserver(()=>{if(!top().includes(svg.lastElementChild))lift()}).observe(svg,{childList:true});
+  if(M.ctx){const gC=el('g',{'pointer-events':'none'});svg.insertBefore(gC,gBlk);  // cut-away plots as background
+    el('path',{d:M.ctx.map(r=>'M'+pts(r)+'Z').join(''),fill:'#F4F1EA',stroke:'#CFC9B9','stroke-width':1,'vector-effect':'non-scaling-stroke'},gC)}}
 const NOLOT='#BDB8AD';  // land that isn't a plot (lanes, slopes, government land): darker = not buyable
 gLand.innerHTML='';M.land.forEach(r=>el('path',{d:'M'+pts(r[0])+'Z',fill:NOLOT},gLand));
 if(M.water){const gW=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gW,gBlk);let d='';
