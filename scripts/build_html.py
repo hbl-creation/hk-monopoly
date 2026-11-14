@@ -85,6 +85,12 @@ if any(s[0] == 'L' for s in E['erase']):
                 z['a'] = min(live_a, key=lambda a_: (a_[1] - z['g'][0][0]) ** 2 + (a_[2] - z['g'][0][1]) ** 2)[0]
         data['areas'] = live_a
         print('districts removed:', sorted(dead))
+for cut in E.get('cut', []):  # whole areas cut off (e.g. 朗屏路以北), optionally only one district's plots
+    cg = Polygon(cut['g']).buffer(0)
+    for l in L:
+        if l['id'] not in gone and cg.contains(Point(l['c'])) and (not cut.get('only') or l['a'] == cut['only']):
+            gone.add(l['id']); wiped_n += 1
+if E.get('cut'): E['erase'].append(['L', 0.1, [[1e6, 1e6]]])  # make the play-area trim run even without brush strokes
 pairs = [(find(a_c), find(b_c), a_c, b_c) for a_c, b_c in E['merge']]  # resolve before shapes/centres change
 todo = list(pairs)
 while todo:  # repeat passes: a plot may only touch the group once others have joined it
@@ -195,18 +201,23 @@ if any(s[0] == 'L' for s in E['erase']):
         data['water'] = nw
     x0, y0, x1, y1 = edge.bounds; m = 120
     data['bounds'] = [round(x0 - m), round(y0 - m), round(x1 + m), round(y1 + m)]
-    for z in data['blocks']:  # redraw each district outline from the plots it still has
+    nz = []  # redraw district outlines from their plots; a district split by a river/road becomes one zone per piece
+    for z in data['blocks']:
         if not z['lots']: continue
-        u = unary_union([Polygon(data['lots'][i]['g']).buffer(0) for i in z['lots']])
-        for r in (12, 25):
-            v = u.buffer(r).buffer(-r)
-            if v.geom_type == 'Polygon': break
-        if v.geom_type != 'Polygon': v = max(v.geoms, key=lambda x: x.area)
-        z['g'] = [[round(x, 1), round(y, 1)] for x, y in v.simplify(1.5).exterior.coords[:-1]]
-    kz = [z for z in data['blocks'] if z['lots']]; zm = {z['id']: i for i, z in enumerate(kz)}
-    for i, z in enumerate(kz): z['id'] = i
-    for l in data['lots']: l['blk'] = zm.get(l['blk'], -1)
-    data['blocks'] = kz
+        mem = [data['lots'][i] for i in z['lots']]
+        u = unary_union([Polygon(l['g']).buffer(0) for l in mem])
+        v = u.buffer(12).buffer(-12)
+        pieces = list(v.geoms) if v.geom_type == 'MultiPolygon' else [v]
+        for pc in pieces:
+            sub = [l for l in mem if pc.buffer(3).contains(Polygon(l['g']).buffer(0).representative_point())]
+            if not sub: continue
+            z2 = dict(z); z2['lots'] = [l['id'] for l in sub]
+            z2['g'] = [[round(x, 1), round(y, 1)] for x, y in pc.simplify(1.5).exterior.coords[:-1]]
+            nz.append(z2)
+    for i, z in enumerate(nz):
+        z['id'] = i
+        for li in z['lots']: data['lots'][li]['blk'] = i
+    data['blocks'] = nz
     E['erase'] = [s for s in E['erase'] if s[0] not in ('L', 'R')]  # baked into the map now
     trim_note = f', trimmed to play area ({len(stray)} stray plots dropped)'
 kz = [z for z in data['blocks'] if z['lots']]; zm = {z['id']: i for i, z in enumerate(kz)}
