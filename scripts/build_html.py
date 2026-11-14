@@ -21,7 +21,7 @@ for k in ('lots', 'merge', 'erase'): E.setdefault(k, [] if k != 'lots' else {})
 
 if len(sys.argv) > 2:  # merge a fresh export: it carries every lot edit + stroke already, merges are added
     X = json.load(open(sys.argv[2]))
-    E['lots'] = X.get('lots', {})
+    E['lots'] = {**E['lots'], **X.get('lots', {})}  # union: edits made since the last export stay
     # land wipes are baked into the page, so an export no longer carries them: keep the master's, add the new strokes
     baked = [s_ for s_ in E['erase'] if s_[0] in ('L', 'R')]
     E['erase'] = baked + [s_ for s_ in X.get('erase', []) if s_ not in baked]
@@ -207,6 +207,21 @@ if any(s[0] == 'L' for s in E['erase']):
     keep_k = unary_union([Polygon(l['g']).buffer(0) for l in keep]).buffer(0.8)
     free = play.difference(keep_k).difference(rds).difference(wat).buffer(-1).buffer(1)
     made = 0
+    from shapely.strtree import STRtree as _ST
+    BP = [(Polygon(list(zip(b[0][0::2], b[0][1::2]))).buffer(0), b[1]) for b in data.get('bld', []) if b[1]]
+    btree = _ST([g_ for g_, _ in BP]) if BP else None
+    MARKS = {'元朗劇院', '大橋街市', '同益街市', '香港屏山鄧族文物館', '元朗千色匯', '合益廣場', '元朗大會堂'}
+    def classify(q):  # name + kind from the biggest named building on a plot made from unleased land
+        if not btree: return '', 'buy'
+        hits = sorted(((BP[i][0].intersection(q).area, BP[i][1]) for i in btree.query(q)), reverse=True)
+        if not hits or hits[0][0] < 60: return '', 'buy'
+        n = hits[0][1]
+        if n in MARKS: return n, 'mark'
+        if any(k in n for k in ('學校', '中學', '小學', '書院', '幼稚園', '醫院', '診所', '健康院')): return n, 'comm'
+        if any(k in n for k in ('公園', '遊樂場', '花園')): return n, 'park'
+        if any(k in n for k in ('廟', '教堂', '教會', '寺', '祠')): return n, 'rel'
+        if any(k in n for k in ('游泳池', '體育館', '運動場', '街市', '劇院', '大會堂', '圖書館', '政府', '警署', '消防', '郵政', '社區會堂', '康樂', '中心', '泵房', '變電站', '水務', '渠務')): return n, 'gov'
+        return n, 'buy'
     for g in sorted((free.geoms if hasattr(free, 'geoms') else [free]), key=lambda g: -g.area):
         if g.geom_type != 'Polygon' or g.area < 200 or g.area / max(1, g.length) < 4: continue  # skip verges/slivers
         if g.area > 60000: continue  # very large government land (e.g. reserves) stays unplayable
@@ -229,13 +244,43 @@ if any(s[0] == 'L' for s in E['erase']):
                 if q.geom_type != 'Polygon' or q.area < 150: continue
                 rp = q.representative_point(); nb = min(keep, key=lambda l: Polygon(l['g']).distance(rp))
                 ppm = nb['p'] / max(1, nb['m2'])
-                keep.append({'f': 0, 'id': len(keep), 'blk': nb['blk'], 'k': 'buy', 'n': '', 'also': [], 'dev': '', 'gl': 1,
+                cn, ck = classify(q)
+                keep.append({'f': 0, 'id': len(keep), 'blk': nb['blk'], 'k': ck, 'n': cn, 'also': [], 'dev': '', 'gl': 1,
                              'a': nb['a'], 's': nb['s'], 'm2': round(q.area), 'p': max(3, round(ppm * q.area)), 'r': max(0.1, round(ppm * q.area * 0.06, 1)),
                              'c': [round(rp.x, 1), round(rp.y, 1)], 'nm': 0, 'g': [[round(x, 1), round(y, 1)] for x, y in q.simplify(0.6).exterior.coords[:-1]]})
                 if 0 <= nb['blk'] < len(data['blocks']): data['blocks'][nb['blk']]['lots'].append(keep[-1]['id'])
                 polys.append(q); made += 1
+    # edits on plots that only exist after this step (made from unleased land) are applied now
+    late = []
+    for k_, l_, e_ in targets:
+        if l_ is not None: continue
+        c_ = [float(v) for v in k_.split(',')]
+        best = min(keep, key=lambda l: (l['c'][0] - c_[0]) ** 2 + (l['c'][1] - c_[1]) ** 2)
+        if (best['c'][0] - c_[0]) ** 2 + (best['c'][1] - c_[1]) ** 2 < 400: apply(best, e_); late.append(k_)
+    miss[:] = [m for m in miss if m not in late]
+    # one public building = one plot: join pieces that got the same building name and kind
+    grp = {}
+    for l in keep:
+        if l.get('gl') and l['k'] != 'buy' and l['n']: grp.setdefault((l['n'], l['k']), []).append(l)
+    drop = set()
+    for (n_, k_), ls in grp.items():
+        if len(ls) < 2: continue
+        uu = unary_union([Polygon(l['g']).buffer(12) for l in ls]).buffer(-12)
+        for u in (uu.geoms if uu.geom_type == 'MultiPolygon' else [uu]):  # each connected piece separately
+            sub = [l for l in ls if Polygon(l['g']).buffer(0).intersects(u.buffer(1))]
+            if len(sub) < 2: continue
+            a0 = sub[0]; a0['g'] = [[round(x, 1), round(y, 1)] for x, y in u.simplify(0.6).exterior.coords[:-1]]
+            a0['m2'] = sum(l['m2'] for l in sub); a0['p'] = sum(l['p'] for l in sub); a0['r'] = round(sum(l['r'] for l in sub), 1)
+            rp = u.representative_point(); a0['c'] = [round(rp.x, 1), round(rp.y, 1)]
+            drop |= {l['id'] for l in sub[1:]}
+    if drop:
+        keep = [l for l in keep if l['id'] not in drop]
+        rm3 = {l['id']: i for i, l in enumerate(keep)}
+        for l in keep: l['id'] = rm3[l['id']]
+        for z in data['blocks']: z['lots'] = [rm3[i] for i in z['lots'] if i in rm3]
+        for b in data.get('bld', []): b[3] = rm3.get(b[3], -1)
     data['lots'] = keep
-    print('plots made from unleased land:', made)
+    print('plots made from unleased land:', made, '| joined', len(drop), '| late edits', len(late))
     stray = [l for l, p in zip(keep, polys) if not play.buffer(5).contains(p.representative_point())]
     if stray:
         sid = {l['id'] for l in stray}
