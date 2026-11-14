@@ -13,9 +13,11 @@ gameplay, names and boundaries. Discuss designs before building big systems.
 - Chapter 1 map **元朗** is close to final: `prototypes/yuenlong-monopoly.html` (open in a browser; ~3 MB, self-contained).
   1,170 plots on real government land lots, developer ownership set by Herbert, play area trimmed by him,
   territory-map style (background map outside, red outline around the play area).
-- Gameplay in the prototype is still the old Central prototype loop (buy / rent / AI rival 元朝地產 / events).
-  None of the design doc's chapter-1 systems are built yet.
-- Work is on branch **`yuenlong-map`** (pushed). `main` does not have it yet — ask Herbert before merging.
+- `prototypes/yuenlong-monopoly.html` still runs the old Central prototype loop (buy / rent / events); Herbert uses
+  it as the map + editor page.
+- **Chapter-1 playable demo: `prototypes/yuenlong-ch1.html`** (12 in-game months, mobile portrait first, also
+  desktop) — see "Chapter-1 demo" below. Branch **`ch1-demo`** (off `yuenlong-map`).
+- Map work is on branch **`yuenlong-map`** (pushed). `main` has neither yet — ask Herbert before merging.
 - Older prototypes: `central-monopoly.html` (中上環), `ytm-monopoly.html` (油尖旺); `prototypes/index.html` lists them;
   `wrangler.jsonc` = Cloudflare Worker config for hosting the prototypes.
 
@@ -41,6 +43,44 @@ trim to the play area (fills gaps with unused government lots, turns unleased la
 buildings, splits districts per piece), zoning tags, auto-names (`村名/街名 N號地`), background map.
 Generated data (`data/*3.json`, `data/*4.json`) is never hand-edited — edits live in `edits/`.
 
+## Chapter-1 demo (`prototypes/yuenlong-ch1.html`)
+Build: `python3 scripts/build_ch1.py` (also run automatically at the end of `build_html.py yuenlong`). It does **not**
+regenerate the map: the data blob is copied byte-for-byte from `yuenlong-monopoly.html` (the script asserts this),
+so both pages show the same map and share Herbert's in-browser edits. Never edit the built page by hand.
+
+| file | what |
+|---|---|
+| `scripts/ch1-shell.html` | page shell: CSS, top bar, bottom dock, sheets, modals |
+| `scripts/ch1-game.js` | game layer: `CFG` (all tunables), `USES`, rivals, events (`EV`), tutorial (`TUT`), annual report |
+| `scripts/yuenlong-template.html` | map drawing code, reused as-is (everything before `// game`) |
+
+Game state lives only in `S` (saved to localStorage `hkm-ch1-save-yuenlong`); map data `M` is read-only — starting
+plots, 陸國集團's plots, small owners and rivals are assigned at game start, never written into the map. Company
+names / attributes come from `M.companies` (`data/companies.json`); banks are shown under their design-doc names
+(`CFG.BANK` 東方銀行, `CFG.FIN` 元合財務) while the map data keeps the original POI names.
+
+In the demo: intro story → tutorial (buy out 陸國集團 → merge → apply) → monthly loop (buy, merge adjacent plots in
+the same district block, change-of-use application, premium, build, rent or sell) → rivals 元朝地產 / 金煌實業 acting
+on their attributes → 民意 + 鄉紳 (simple versions) → 16 black-humour event cards → annual report with ranking and
+chapter-2 unlock check. Left out on purpose: builder tiers, flat sizes, reputation / dirty tricks, shares and
+takeovers, government tenders, businesses, mortgages, other factions, three-step policy events.
+
+### ⚠️ Demo values to REVISIT (Herbert, Nov 2026: "mark it, revisit later")
+All in `CFG` / `USES` at the top of `scripts/ch1-game.js`:
+- **Compressed timings (試玩版數值, labelled in the UI):** approval 1 month, village houses 2 months, housing
+  4 months (`APPROVE_MONTHS`, `BUILD_MONTHS`). Design doc: approval 3–9 months, construction 12–36 months.
+- **Demo length 12 months** (`MONTHS`); design doc chapter 1 is 5 years.
+- **Start and unlock numbers (not in the design doc, agreed for the demo):** 50 億 cash + 4 adjacent farm plots in
+  元朗東; unlock chapter 2 at worth ≥ 1.5 × start and above 元朝地產; below start worth = 敗家.
+- **Money balance is a first pass:** `USES` multipliers, approval chances, rents, loan terms, rival budgets. Land
+  prices are still the old area-weighted estimates (next step 2 below). Scripted bots finish the year at about
+  2–3 × start worth, so the demo is on the easy side.
+- **舊樓重建 (merged urban plots → new housing)** was added so the tutorial's merged 陸國 site has a use; the design
+  doc only introduces redevelopment in chapter 3. Remove the `urban` entry in `USES` to drop it.
+- 陸國集團's plots and the player's start plots are picked by rule at game start (`CFG.LUK_AT` / `CFG.START_AT`
+  pin them to plot centres). Big developers' off-map assets in the ranking are rough estimates (`OFFMAP`).
+- 元合財務 (finance company, named by Herbert) is not yet in the design doc's 名稱對照表.
+
 ## Herbert's edit workflow
 In the page: **✎ 編輯地圖** → tools 🧽擦路 / 🖌補路 / 🗑刪地 / 🌱補地, tap a plot to change type / name / owner (dropdown from
 `companies.json`) / price, merge plots. Edits save in his browser; **⬇ 匯出** downloads `yuenlong-edits.json`, he
@@ -62,9 +102,8 @@ check which build an export came from (`build` field) if centres don't match.
 1. Swap roads / road names to LandsD Road Centreline; Herbert does a final pass in edit mode.
 2. Re-price land from government data (storeys, building cover, zone, near MTR/West Rail, main roads,
    farmland vs village vs estate). Current prices were only area-weighted from the first OSM estimate.
-3. Chapter-1 systems from the design doc: rivals (元朝地產 main, 金煌實業 speculator), tutorial target 陸國集團,
-   merging adjacent plots, change-of-use applications (district council / Town Planning Board, waiting time),
-   public opinion (民意), village faction (鄉紳).
+3. Chapter-1 systems from the design doc — first playable version done as the 12-month demo (see "Chapter-1
+   demo"); next: Herbert's play-test notes, then the "Demo values to REVISIT" list, then the left-out systems.
 4. Merge `yuenlong-map` into `main`, host via Cloudflare so Herbert can test on his phone (design doc: mobile
    portrait first).
 

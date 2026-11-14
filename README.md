@@ -6,7 +6,8 @@
 
 ## 資料夾
 - `prototypes/` — 可以直接用瀏覽器打開嘅原型
-  - `yuenlong-monopoly.html`：第一章元朗，市中心＋周邊農地，三級縮放（開發中）
+  - `yuenlong-ch1.html`：**第一章元朗試玩版**（遊戲內 12 個月；手機直版優先，電腦都玩到）。由 `python3 scripts/build_ch1.py` 生成，地圖數據同 `yuenlong-monopoly.html` 完全一樣。審批同工期係壓縮咗嘅「試玩版數值」，之後要 revisit（見 `CLAUDE.md`）
+  - `yuenlong-monopoly.html`：第一章元朗，市中心＋周邊農地，三級縮放（開發中）；地圖編輯用呢頁
   - `central-monopoly.html`：中上環及金鐘，三級縮放、地標、銀行、大地產商（最新）
   - `ytm-monopoly.html`：油尖旺街區版
   - `hk-board.html`：十八區棋盤地圖

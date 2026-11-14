@@ -414,3 +414,6 @@ tpl = tpl.rstrip() + '\n<script>' + ui + '</script>\n'
 out = tpl.replace('__DATA__', json.dumps(data, ensure_ascii=False, separators=(',', ':')), 1)
 open(f'{ROOT}/prototypes/{key}-monopoly.html', 'w').write(out)
 print(f'{key}: {len(data["lots"])} lots, {wiped_n} wiped, {len(gone) - wiped_n} merged, {len(E["lots"])} lot edits, {len(E["erase"])} road strokes, not matched: {miss}{trim_note}')
+if key == 'yuenlong':  # chapter-1 playable demo shares this page's map data
+    import subprocess, sys
+    subprocess.run([sys.executable, f'{ROOT}/scripts/build_ch1.py', key], check=True)
