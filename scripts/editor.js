@@ -15,7 +15,8 @@ function dropWiped(Md,E){if(!E.erase.some(s=>s[0]==='L'))return;
   const kb=Md.blocks.filter(b=>b.lots.length),bm={};kb.forEach((b,i)=>{bm[b.id]=i;b.id=i});Md.blocks=kb;
   keep.forEach(l=>l.blk=l.blk in bm?bm[l.blk]:-1);(Md.bld||[]).forEach(b=>{b[3]=b[3] in remap?remap[b[3]]:-1})}
 function preEdits(Md){let E=null;try{E=JSON.parse(localStorage.getItem('hkm-edits-'+Md.key)||'null')}catch(e){}
-  E=edNorm(E||JSON.parse(JSON.stringify(Md.edits||{})));window.EDITS=E;
+  const emb=Md.edits||{};if(E&&emb.build&&E.build!==emb.build)E=null;  // map was rebuilt with your edits baked in
+  E=edNorm(E||JSON.parse(JSON.stringify(emb)));E.build=emb.build;window.EDITS=E;
   for(const k in E.lots){const l=edFind(Md,k.split(',').map(Number));if(l)edApply(l,E.lots[k])}dropWiped(Md,E)}
 //==UI==
 (function(){
@@ -178,6 +179,6 @@ $('edExp').onclick=()=>{const s=JSON.stringify(E);try{navigator.clipboard&&navig
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'application/json'}));a.download=M.key+'-edits.json';a.click();
   msg(`已下載 ${M.key}-edits.json，傳俾 Claude 就得`)};
 $('edImp').onclick=()=>$('edFile').click();
-$('edFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=edNorm(JSON.parse(await f.text()));localStorage.setItem(KEY,JSON.stringify(x));location.reload()}catch(err){msg('檔案讀唔到')}};
-$('edClr').onclick=()=>{if(!confirm('清除呢張地圖所有編輯？'))return;try{localStorage.setItem(KEY,JSON.stringify(edNorm({})))}catch(e){}location.reload()};
+$('edFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const x=edNorm(JSON.parse(await f.text()));x.build=(M.edits||{}).build;localStorage.setItem(KEY,JSON.stringify(x));location.reload()}catch(err){msg('檔案讀唔到')}};
+$('edClr').onclick=()=>{if(!confirm('清除你喺呢部電腦未傳俾 Claude 嘅編輯？（已經做入地圖嘅唔會受影響）'))return;try{localStorage.removeItem(KEY)}catch(e){}location.reload()};
 })();

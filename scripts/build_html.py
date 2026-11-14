@@ -28,6 +28,12 @@ if len(sys.argv) > 2:  # merge a fresh export: it carries every lot edit + strok
     os.makedirs(os.path.dirname(ep), exist_ok=True)
     json.dump(E, open(ep, 'w'), ensure_ascii=False, indent=1)
 
+CO = json.load(open(f'{ROOT}/data/companies.json'))
+OLD2NEW = {w: c['name'] for c in CO['major'] for w in c['was']}
+for e in E['lots'].values():
+    if e.get('dev') in OLD2NEW: e['dev'] = OLD2NEW[e['dev']]
+wp = f'{ROOT}/data/{key}-water.json'
+if os.path.exists(wp): data['water'] = json.load(open(wp))['w']  # rivers / ponds drawn on their own; outside-map colour is free
 L = data['lots']
 def find(c):
     best = min(L, key=lambda l: (l['c'][0] - c[0]) ** 2 + (l['c'][1] - c[1]) ** 2)
@@ -56,17 +62,45 @@ def land_wiped(p):
 gone, miss = set(), []
 targets = [(k, find([float(v) for v in k.split(',')]), e) for k, e in E['lots'].items()]
 wiped_n = 0
-for l in L:
-    if land_wiped(l['c']): gone.add(l['id']); wiped_n += 1
-for a_c, b_c in E['merge']:
-    a, b = find(a_c), find(b_c)
-    if not a or not b or a is b or a['id'] in gone or b['id'] in gone: miss.append((a_c, b_c)); continue
-    u = unary_union([Polygon(a['g']).buffer(1), Polygon(b['g']).buffer(1)]).buffer(-1)
-    if u.geom_type != 'Polygon': miss.append((a_c, b_c)); continue
-    a['g'] = [[round(x, 1), round(y, 1)] for x, y in u.simplify(1).exterior.coords]
-    a['m2'] += b['m2']; a['p'] += b['p']; a['r'] = round(a['p'] * 0.06, 1)
-    rp = u.representative_point(); a['c'] = [round(rp.x, 1), round(rp.y, 1)]
-    gone.add(b['id'])
+if any(s[0] == 'L' for s in E['erase']):
+    from shapely.geometry import LineString as _LS
+    W = None
+    for s_ in E['erase']:  # net wiped area, strokes in order (補地 strokes give land back)
+        if s_[0] not in ('L', 'R'): continue
+        q = s_[2]; g = (Point(q[0]) if len(q) == 1 else _LS(q)).buffer(s_[1])
+        W = (g if W is None else W.union(g)) if s_[0] == 'L' else (W.difference(g) if W is not None else None)
+    for l in L:  # a plot goes when its centre, or 40% of its area, was swept
+        pg = Polygon(l['g']).buffer(0)
+        if land_wiped(l['c']) or (W is not None and pg.intersection(W).area >= 0.4 * pg.area):
+            gone.add(l['id']); wiped_n += 1
+    # districts whose name point was wiped are deleted; their remaining plots join the nearest district
+    dead = {a_[0] for a_ in data['areas'] if land_wiped([a_[1], a_[2]])}
+    live_a = [a_ for a_ in data['areas'] if a_[0] not in dead]
+    if dead and live_a:
+        for l in L:
+            if l['a'] in dead:
+                l['a'] = min(live_a, key=lambda a_: (a_[1] - l['c'][0]) ** 2 + (a_[2] - l['c'][1]) ** 2)[0]
+        for z in data['blocks']:
+            if z.get('a') in dead:
+                z['a'] = min(live_a, key=lambda a_: (a_[1] - z['g'][0][0]) ** 2 + (a_[2] - z['g'][0][1]) ** 2)[0]
+        data['areas'] = live_a
+        print('districts removed:', sorted(dead))
+pairs = [(find(a_c), find(b_c), a_c, b_c) for a_c, b_c in E['merge']]  # resolve before shapes/centres change
+todo = list(pairs)
+while todo:  # repeat passes: a plot may only touch the group once others have joined it
+    left = []
+    for a, b, a_c, b_c in todo:
+        if not a or not b or a is b or a['id'] in gone or b['id'] in gone: miss.append((a_c, b_c)); continue
+        for r in (1, 3, 6, 10, 15):  # allow a lane / field path between plots
+            u = unary_union([Polygon(a['g']).buffer(r), Polygon(b['g']).buffer(r)]).buffer(-r)
+            if u.geom_type == 'Polygon': break
+        if u.geom_type != 'Polygon': left.append((a, b, a_c, b_c)); continue
+        a['g'] = [[round(x, 1), round(y, 1)] for x, y in u.simplify(1).exterior.coords]
+        a['m2'] += b['m2']; a['p'] += b['p']; a['r'] = round(a['p'] * 0.06, 1)
+        rp = u.representative_point(); a['c'] = [round(rp.x, 1), round(rp.y, 1)]
+        gone.add(b['id'])
+    if len(left) == len(todo): miss += [(x[2], x[3]) for x in left]; break
+    todo = left
 # government building footprints: attach to lots, fill in names players can recognise
 bp = f'{ROOT}/data/{key}-bld.json'
 if os.path.exists(bp):
@@ -114,16 +148,76 @@ for z in data['blocks']:
     ks = collections.Counter(keep[i]['k'] for i in z['lots'])
     if z['lots']: z['k'] = 'buy' if ks['buy'] or ks['dev'] else ks.most_common(1)[0][0]
 data['lots'] = keep
+# ---- trim the map to the play area left after 刪地 (clean edge instead of brush marks) ----
+trim_note = ''
+if any(s[0] == 'L' for s in E['erase']):
+    from shapely.geometry import LineString, box as sbox
+    polys = [Polygon(l['g']).buffer(0) for l in keep]
+    blob = unary_union([p.buffer(25) for p in polys]).buffer(-15)
+    parts = sorted(blob.geoms if blob.geom_type == 'MultiPolygon' else [blob], key=lambda p: -p.area)
+    main = [p for p in parts if p.area >= parts[0].area * 0.04]  # drop stray islands left by rough wiping
+    play = unary_union([Polygon(p.exterior) for p in main])     # no holes inside the play area
+    stray = [l for l, p in zip(keep, polys) if not play.buffer(5).contains(p.representative_point())]
+    if stray:
+        sid = {l['id'] for l in stray}
+        keep = [l for l in keep if l['id'] not in sid]
+        rm2 = {l['id']: i for i, l in enumerate(keep)}
+        for l in keep: l['id'] = rm2[l['id']]
+        for z in data['blocks']: z['lots'] = [rm2[i] for i in z['lots'] if i in rm2]
+        for b in data.get('bld', []): b[3] = rm2.get(b[3], -1)
+        remap = {o: rm2[n] for o, n in remap.items() if n in rm2}
+        data['lots'] = keep
+    edge = play.buffer(35).simplify(2)                          # land shown around the plots
+    def ring(g): return [[round(x, 1), round(y, 1)] for x, y in g.exterior.coords[:-1]]
+    land = unary_union([Polygon(r[0], r[1:]).buffer(0) for r in data['land']]).intersection(edge)
+    data['land'] = [[ring(p)] + [[[round(x, 1), round(y, 1)] for x, y in h.coords[:-1]] for h in p.interiors]
+                    for p in (land.geoms if land.geom_type == 'MultiPolygon' else [land]) if p.geom_type == 'Polygon' and p.area > 50]
+    rz = edge.buffer(60)                                        # keep the boundary roads (e.g. the highway) whole-ish
+    nr = []
+    for r in data['roads']:
+        segs = []
+        for line in r['l']:
+            if len(line) < 2: continue
+            g = LineString(line).intersection(rz)
+            for q in (g.geoms if hasattr(g, 'geoms') else [g]):
+                if q.geom_type == 'LineString' and q.length > 3: segs.append([[round(x, 1), round(y, 1)] for x, y in q.coords])
+        if segs: r['l'] = segs; nr.append(r)
+    data['roads'] = nr
+    data['labels'] = [t for t in data['labels'] if edge.contains(Point(t[1], t[2]))]
+    if 'bld' in data:
+        data['bld'] = [b for b in data['bld'] if edge.contains(Point(b[0][0], b[0][1]))]
+    if 'water' in data:
+        nw = []
+        for w in data['water']:
+            g = Polygon(list(zip(w[0::2], w[1::2]))).buffer(0).intersection(edge).intersection(land.buffer(2))
+            for q in (g.geoms if hasattr(g, 'geoms') else [g]):
+                if q.geom_type == 'Polygon' and q.area > 30: nw.append([round(v, 1) for xy in q.exterior.coords[:-1] for v in xy])
+        data['water'] = nw
+    x0, y0, x1, y1 = edge.bounds; m = 120
+    data['bounds'] = [round(x0 - m), round(y0 - m), round(x1 + m), round(y1 + m)]
+    for z in data['blocks']:  # redraw each district outline from the plots it still has
+        if not z['lots']: continue
+        u = unary_union([Polygon(data['lots'][i]['g']).buffer(0) for i in z['lots']])
+        for r in (12, 25):
+            v = u.buffer(r).buffer(-r)
+            if v.geom_type == 'Polygon': break
+        if v.geom_type != 'Polygon': v = max(v.geoms, key=lambda x: x.area)
+        z['g'] = [[round(x, 1), round(y, 1)] for x, y in v.simplify(1.5).exterior.coords[:-1]]
+    kz = [z for z in data['blocks'] if z['lots']]; zm = {z['id']: i for i, z in enumerate(kz)}
+    for i, z in enumerate(kz): z['id'] = i
+    for l in data['lots']: l['blk'] = zm.get(l['blk'], -1)
+    data['blocks'] = kz
+    E['erase'] = [s for s in E['erase'] if s[0] not in ('L', 'R')]  # baked into the map now
+    trim_note = f', trimmed to play area ({len(stray)} stray plots dropped)'
 kz = [z for z in data['blocks'] if z['lots']]; zm = {z['id']: i for i, z in enumerate(kz)}
 for i, z in enumerate(kz): z['id'] = i
 for l in keep: l['blk'] = zm.get(l['blk'], -1)
 data['blocks'] = kz
 for b in data.get('bld', []): b[3] = remap.get(b[3], -1)
 data['key'] = key
-wp = f'{ROOT}/data/{key}-water.json'
-if os.path.exists(wp): data['water'] = json.load(open(wp))['w']  # rivers / ponds drawn on their own; outside-map colour is free
 data['companies'] = json.load(open(f'{ROOT}/data/companies.json'))  # single owner list, from the design doc
-data['edits'] = {'v': 1, 'lots': E['lots'], 'merge': [], 'erase': E['erase']}  # merges are baked in
+import time
+data['edits'] = {'v': 1, 'build': int(time.time()), 'lots': E['lots'], 'merge': [], 'erase': E['erase']}  # merges + land wipes are baked in
 
 tpl = open(f'{ROOT}/scripts/{key}-template.html').read()
 pre, ui = open(f'{ROOT}/scripts/editor.js').read().split('//==UI==')
@@ -133,4 +227,4 @@ tpl = tpl.replace('<script>', '<script>' + pre + '</script>\n<script>', 1)
 tpl = tpl.rstrip() + '\n<script>' + ui + '</script>\n'
 out = tpl.replace('__DATA__', json.dumps(data, ensure_ascii=False, separators=(',', ':')), 1)
 open(f'{ROOT}/prototypes/{key}-monopoly.html', 'w').write(out)
-print(f'{key}: {len(keep)} lots, {wiped_n} wiped, {len(gone) - wiped_n} merged, {len(E["lots"])} lot edits, {len(E["erase"])} road strokes, not matched: {miss}')
+print(f'{key}: {len(data["lots"])} lots, {wiped_n} wiped, {len(gone) - wiped_n} merged, {len(E["lots"])} lot edits, {len(E["erase"])} road strokes, not matched: {miss}{trim_note}')
