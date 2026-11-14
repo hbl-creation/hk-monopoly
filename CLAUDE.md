@@ -60,6 +60,14 @@ CSS variables at the top of `ch1-shell.html`. Every plot shows its expected mont
 card (rent + yearly yield), in the project list and application screen (rent after completion), and as map labels
 (own plots once plots are visible; all buyable plots at the closest zoom).
 
+Map panning (Herbert: "laggy when scrolling the map" on phone, Nov 2026): the SVG has ~20k elements, so redrawing it
+on every finger move (changing `viewBox`) ran at 12–20 fps on a throttled phone. `yuenlong-template.html` now wraps
+the SVG in `#mapWrap`; during a drag / pinch / wheel / `zoomTo` animation `fast()` only moves and scales that wrapper
+with a CSS transform (GPU, no redraw), and `apply()` redraws once the gesture pauses (160 ms) or ends. Measured
+60 fps while dragging. Trade-off: on a long drag the newly revealed edge stays blank until the finger pauses.
+`svg.getBoundingClientRect` is overridden to return the untransformed box during a gesture, so the editor's brush
+maths still works. The map page (`yuenlong-monopoly.html`) picks this up the next time `build_html.py` runs.
+
 Game state lives only in `S` (saved to localStorage `hkm-ch1-save-yuenlong`); map data `M` is read-only — starting
 plots, 陸國集團's plots, small owners and rivals are assigned at game start, never written into the map. Company
 names / attributes come from `M.companies` (`data/companies.json`); banks are shown under their design-doc names

@@ -107,6 +107,17 @@ button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
 const M=__DATA__;
 const $=id=>document.getElementById(id);
 const NS='http://www.w3.org/2000/svg',svg=$('map');
+// Smooth panning: while a finger / mouse / wheel is moving, the already-drawn map is only shifted and scaled with a
+// CSS transform (done by the GPU, nothing is redrawn). The real redraw (apply) happens once the gesture pauses or
+// ends. While the transform is on, getBoundingClientRect returns the untransformed box so all maths stays correct.
+const mapWrap=document.createElement('div');mapWrap.id='mapWrap';svg.before(mapWrap);mapWrap.appendChild(svg);
+mapWrap.style.cssText='position:absolute;inset:0;transform-origin:0 0;will-change:transform';
+const _gbr=svg.getBoundingClientRect.bind(svg);let RC=null,DRAWN=null,fastRaf=0,fastT=0;
+svg.getBoundingClientRect=()=>RC||_gbr();
+function fast(){if(!DRAWN)return apply();if(!RC)RC=_gbr();clearTimeout(fastT);fastT=setTimeout(()=>apply(),160);
+  if(fastRaf)return;fastRaf=requestAnimationFrame(()=>{fastRaf=0;if(!RC)return;const k=RC.width/vb.w,s=DRAWN.w/vb.w,tx=(DRAWN.x-vb.x)*k,ty=(DRAWN.y-vb.y)*k;
+    mapWrap.style.transform=`translate(${tx}px,${ty}px) scale(${s})`;
+    if(Math.abs(tx)>RC.width*.7||Math.abs(ty)>RC.height*.5||s<.5||s>2)apply()})}
 const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e};
 const pts=a=>a.map(p=>p[0]+','+p[1]).join(' ');
 const KIND={buy:{fill:'#FBFAF6',tag:'可買街區'},dev:{fill:'#5B3F8C',tag:'大地產商物業',head:'#5B3F8C'},park:{fill:'#A9D18E',tag:'公園及休憩用地',col:'#3E7A2C',head:'#5E9A47'},gov:{fill:'#C3C6CC',tag:'政府用地',col:'#4A505A',head:'#6B717C'},
@@ -154,7 +165,8 @@ let vb={x:bx0,y:by0,w:bx1-bx0,h:by1-by0},LOD=0;
 const LODNAME={1:'分區',2:'街區',3:'細節'};
 function fit(){const r=svg.getBoundingClientRect(),a=r.width/Math.max(1,r.height),cw=(bx1-bx0)*1.04,ch=(by1-by0)*1.45;
   if(a>cw/ch){vb.h=ch;vb.w=ch*a}else{vb.w=cw;vb.h=cw/a}vb.x=(bx0+bx1)/2-vb.w/2;vb.y=(by0+by1)/2-vb.h/2-(by1-by0)*0.04;apply()}
-function apply(){svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);const r=svg.getBoundingClientRect(),u=vb.w/Math.max(1,r.width);
+function apply(){clearTimeout(fastT);if(fastRaf){cancelAnimationFrame(fastRaf);fastRaf=0}mapWrap.style.transform='';RC=null;
+  svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);DRAWN={...vb};const r=svg.getBoundingClientRect(),u=vb.w/Math.max(1,r.width);
   const lv=u>1.5?1:u>0.6?2:3;
   if(lv>=2){buildLots();buildMinor()} if(lv===3){buildFoot();buildLotNames()}
   if(lv!==LOD){LOD=lv;$('lod').textContent='顯示：'+LODNAME[lv];
@@ -168,20 +180,20 @@ function apply(){svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);c
   if(gLN)gLN.setAttribute('font-size',9.5*u)}
 function toSvg(cx,cy){const r=svg.getBoundingClientRect();return[vb.x+(cx-r.left)/r.width*vb.w,vb.y+(cy-r.top)/r.height*vb.h]}
 function zoomAt(f,cx,cy){const r=svg.getBoundingClientRect();const [sx,sy]=toSvg(cx??r.left+r.width/2,cy??r.top+r.height/2);
-  const nw=Math.min(Math.max(vb.w*f,260),(bx1-bx0)*2.2),k=nw/vb.w;vb.x=sx-(sx-vb.x)*k;vb.y=sy-(sy-vb.y)*k;vb.w=nw;vb.h*=k;apply()}
+  const nw=Math.min(Math.max(vb.w*f,260),(bx1-bx0)*2.2),k=nw/vb.w;vb.x=sx-(sx-vb.x)*k;vb.y=sy-(sy-vb.y)*k;vb.w=nw;vb.h*=k;fast()}
 function zoomTo(g){const xs=g.map(p=>p[0]),ys=g.map(p=>p[1]),cx=(Math.min(...xs)+Math.max(...xs))/2,cy=(Math.min(...ys)+Math.max(...ys))/2;
   const r=svg.getBoundingClientRect(),target=Math.max(r.width*1.1,Math.max(...xs)-Math.min(...xs)+300),a=r.width/r.height;
   const from={...vb},to={w:target,h:target/a,x:cx-target/2,y:cy-target/a/2},t0=performance.now(),dur=matchMedia('(prefers-reduced-motion: reduce)').matches?0:380;
-  (function step(t){const k=dur?Math.min(1,(t-t0)/dur):1,e=1-Math.pow(1-k,3);for(const p of ['x','y','w','h'])vb[p]=from[p]+(to[p]-from[p])*e;apply();if(k<1)requestAnimationFrame(step)})(t0)}
+  (function step(t){const k=dur?Math.min(1,(t-t0)/dur):1,e=1-Math.pow(1-k,3);for(const p of ['x','y','w','h'])vb[p]=from[p]+(to[p]-from[p])*e;if(k<1){fast();requestAnimationFrame(step)}else apply()})(t0)}
 svg.addEventListener('wheel',e=>{e.preventDefault();zoomAt(Math.exp(e.deltaY*0.0018),e.clientX,e.clientY)},{passive:false});
 const ptr=new Map();let moved=0,pinch=null;
 svg.addEventListener('pointerdown',e=>{svg.setPointerCapture(e.pointerId);ptr.set(e.pointerId,[e.clientX,e.clientY]);moved=0;svg.classList.add('drag');
   if(ptr.size===2){const [a,b]=[...ptr.values()];pinch=Math.hypot(a[0]-b[0],a[1]-b[1])}});
 svg.addEventListener('pointermove',e=>{const p=ptr.get(e.pointerId);if(!p)return;const r=svg.getBoundingClientRect();
-  if(ptr.size===1){const dx=e.clientX-p[0],dy=e.clientY-p[1];moved+=Math.abs(dx)+Math.abs(dy);vb.x-=dx/r.width*vb.w;vb.y-=dy/r.height*vb.h;apply()}
+  if(ptr.size===1){const dx=e.clientX-p[0],dy=e.clientY-p[1];moved+=Math.abs(dx)+Math.abs(dy);vb.x-=dx/r.width*vb.w;vb.y-=dy/r.height*vb.h;fast()}
   ptr.set(e.pointerId,[e.clientX,e.clientY]);
   if(ptr.size===2&&pinch){const [a,b]=[...ptr.values()],d=Math.hypot(a[0]-b[0],a[1]-b[1]);moved+=99;zoomAt(pinch/d,(a[0]+b[0])/2,(a[1]+b[1])/2);pinch=d}});
-function up(e){const had=ptr.has(e.pointerId);ptr.delete(e.pointerId);if(ptr.size<2)pinch=null;if(!ptr.size)svg.classList.remove('drag');
+function up(e){const had=ptr.has(e.pointerId);ptr.delete(e.pointerId);if(ptr.size<2)pinch=null;if(!ptr.size){svg.classList.remove('drag');if(RC)apply()}
   if(had&&moved<7&&e.type==='pointerup'){svg.releasePointerCapture?.(e.pointerId);const t=document.elementFromPoint(e.clientX,e.clientY);if(!t||!t.dataset)return;
     if(t.dataset.id!==undefined)select(+t.dataset.id);else if(t.dataset.b!==undefined)zoomTo(M.blocks[+t.dataset.b].g)}}
 svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
