@@ -22,7 +22,10 @@ for k in ('lots', 'merge', 'erase'): E.setdefault(k, [] if k != 'lots' else {})
 if len(sys.argv) > 2:  # merge a fresh export: it carries every lot edit + stroke already, merges are added
     X = json.load(open(sys.argv[2]))
     E['lots'] = X.get('lots', {})
-    E['erase'] = X.get('erase', [])
+    # land wipes are baked into the page, so an export no longer carries them: keep the master's, add the new strokes
+    baked = [s_ for s_ in E['erase'] if s_[0] in ('L', 'R')]
+    E['erase'] = baked + [s_ for s_ in X.get('erase', []) if s_ not in baked]
+    if X.get('build'): E['build_seen'] = X['build']
     seen = {json.dumps(m) for m in E['merge']}
     E['merge'] += [m for m in X.get('merge', []) if json.dumps(m) not in seen]
     os.makedirs(os.path.dirname(ep), exist_ok=True)
@@ -196,6 +199,43 @@ if any(s[0] == 'L' for s in E['erase']):
             polys.append(g); added += 1
         data['lots'] = keep
         print('gap lots added as plots:', added)
+    # land with no government lot (squatter/village houses on government land, yards) inside the play area -> plots
+    from shapely.geometry import LineString as _LS2
+    RW = {6: 12, 5.5: 9, 5: 9, 4.5: 7, 4: 7, 3.5: 5, 3: 5, 2.5: 4, 2: 4, 1: 2, 0: 1.5}
+    rds = unary_union([_LS2(ln).buffer(RW.get(float(r['k']), 3) / 2) for r in data['roads'] for ln in r['l'] if len(ln) > 1])
+    wat = unary_union([Polygon(list(zip(w[0::2], w[1::2]))).buffer(0) for w in data.get('water', [])]) if data.get('water') else Polygon()
+    keep_k = unary_union([Polygon(l['g']).buffer(0) for l in keep]).buffer(0.8)
+    free = play.difference(keep_k).difference(rds).difference(wat).buffer(-1).buffer(1)
+    made = 0
+    for g in sorted((free.geoms if hasattr(free, 'geoms') else [free]), key=lambda g: -g.area):
+        if g.geom_type != 'Polygon' or g.area < 200 or g.area / max(1, g.length) < 4: continue  # skip verges/slivers
+        if g.area > 60000: continue  # very large government land (e.g. reserves) stays unplayable
+        n = max(1, round(g.area / 6000)); parts = [g]
+        if n > 1:  # split big pieces into ~6000 m2 plots
+            x0, y0, x1, y1 = g.bounds; import numpy as _np
+            rng = _np.random.default_rng(3); P_ = []
+            while len(P_) < n * 40:
+                q = Point(rng.uniform(x0, x1), rng.uniform(y0, y1))
+                if g.contains(q): P_.append((q.x, q.y))
+            X_ = _np.array(P_); C_ = X_[rng.choice(len(X_), n, replace=False)]
+            for _ in range(25):
+                lab = ((X_[:, None] - C_[None]) ** 2).sum(-1).argmin(1)
+                C_ = _np.array([X_[lab == i].mean(0) if (lab == i).any() else C_[i] for i in range(n)])
+            from shapely.ops import voronoi_diagram
+            from shapely.geometry import MultiPoint
+            parts = [c.intersection(g) for c in voronoi_diagram(MultiPoint([tuple(c) for c in C_]), envelope=g.envelope.buffer(50)).geoms]
+        for pc in parts:
+            for q in (pc.geoms if hasattr(pc, 'geoms') else [pc]):
+                if q.geom_type != 'Polygon' or q.area < 150: continue
+                rp = q.representative_point(); nb = min(keep, key=lambda l: Polygon(l['g']).distance(rp))
+                ppm = nb['p'] / max(1, nb['m2'])
+                keep.append({'f': 0, 'id': len(keep), 'blk': nb['blk'], 'k': 'buy', 'n': '', 'also': [], 'dev': '', 'gl': 1,
+                             'a': nb['a'], 's': nb['s'], 'm2': round(q.area), 'p': max(3, round(ppm * q.area)), 'r': max(0.1, round(ppm * q.area * 0.06, 1)),
+                             'c': [round(rp.x, 1), round(rp.y, 1)], 'nm': 0, 'g': [[round(x, 1), round(y, 1)] for x, y in q.simplify(0.6).exterior.coords[:-1]]})
+                if 0 <= nb['blk'] < len(data['blocks']): data['blocks'][nb['blk']]['lots'].append(keep[-1]['id'])
+                polys.append(q); made += 1
+    data['lots'] = keep
+    print('plots made from unleased land:', made)
     stray = [l for l, p in zip(keep, polys) if not play.buffer(5).contains(p.representative_point())]
     if stray:
         sid = {l['id'] for l in stray}
