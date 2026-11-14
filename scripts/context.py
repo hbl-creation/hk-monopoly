@@ -14,7 +14,7 @@ from shapely.ops import unary_union
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 key, LON_A, LON_B, LAT_A, LAT_B = sys.argv[1], *map(float, sys.argv[2:6])
 M = float(sys.argv[6]) if len(sys.argv) > 6 else 0.025   # roads, land use
-MB = 0.015  # buildings only show when zoomed in, so a smaller ring is enough
+MB = 0  # no building outlines in the background (kept simple); set e.g. 0.015 to include them
 LAT0, LON0 = (LAT_A + LAT_B) / 2, (LON_A + LON_B) / 2  # must match scripts/<key>.py
 KX = 111320 * math.cos(math.radians(LAT0)); KY = 110574
 P = lambda g: shapely.transform(g, lambda c: [[(x - LON0) * KX, (LAT0 - y) * KY] for x, y in c])
@@ -69,7 +69,7 @@ WFS = ('https://portal.csdi.gov.hk/server/services/common/landsd_rcd_16372111943
        '?service=wfs&version=2.0.0&request=GetFeature&typeNames=csdi:Building&count=2000&startIndex={i}'
        f'&outputFormat=geojson&srsName=EPSG:4326&bbox={LAT_A - MB},{LON_A - MB},{LAT_B + MB},{LON_B + MB},EPSG:4326')
 bld, i, inner_p = [], 0, P(INNER)
-while True:
+while MB > 0:
     page = json.load(urllib.request.urlopen(WFS.format(i=i), timeout=300))['features']
     for f in page:
         g = P(shape(f['geometry'])).buffer(0)

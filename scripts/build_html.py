@@ -159,7 +159,6 @@ cp = f'{ROOT}/data/{key}-ctx.json'
 if os.path.exists(cp):
     CX = json.load(open(cp))
     data['roads'] += CX['roads']; data['labels'] += CX['labels']; data['ctxlu'] = CX['landuse']
-    data.setdefault('bld', []).extend(CX['bld'])
     x0, y0, x1, y1 = CX['bounds']
     data['land'].append([[[x0, y0], [x1, y0], [x1, y1], [x0, y1]]])  # inland: the whole wider box is land
     data['ctxbounds'] = CX['bounds']
@@ -214,8 +213,8 @@ if any(s[0] == 'L' for s in E['erase']):
     data['land'] = [[ring(p)] for p in (land.geoms if land.geom_type == 'MultiPolygon' else [land]) if p.geom_type == 'Polygon' and p.area > 50]
     data['play'] = [ring(p) for p in (edge.geoms if edge.geom_type == 'MultiPolygon' else [edge]) if p.geom_type == 'Polygon']
     # plots that were cut away stay as background shapes under the veil (not playable), so the map still reads
-    data['ctx'] = [[[round(x, 1), round(y, 1)] for x, y in Polygon(l['g']).simplify(1.5).exterior.coords[:-1]]
-                   for l in L if l['id'] in gone and not edge.contains(Point(l['c']))]
+    if 'bld' in data:  # background is kept simple: building outlines only inside the play area
+        data['bld'] = [b for b in data['bld'] if edge.contains(Point(b[0][0], b[0][1]))]
     if 'water' in data:  # keep water on land only (drops stray specks), inside and outside the play area
         lb = land.buffer(2); nw = []
         for w in data['water']:
