@@ -85,6 +85,15 @@ if(M.play){const B=8000,veil=el('path',{d:`M${bx0-B} ${by0-B}H${bx1+B}V${by1+B}H
 if(M.ctxlu){const LUC={park:'#CFE3B8',green:'#C3D8AC',farm:'#E4E7C6',res:'#EEEAE2',ind:'#E6E1EA',gov:'#E1E1E1'},gL=el('g',{'pointer-events':'none'});
   gLand.after(gL);const by={};M.ctxlu.forEach(([k,q])=>{let d='M'+q[0]+' '+q[1];for(let i=2;i<q.length;i+=2)d+='L'+q[i]+' '+q[i+1];by[k]=(by[k]||'')+d+'Z'});
   Object.entries(by).forEach(([k,d])=>el('path',{d,fill:LUC[k]},gL))}
+// statutory zoning: green belt / open space land that has no plot is drawn green and labelled
+if(M.zfree){const gZ=el('g',{'pointer-events':'none'});svg.insertBefore(gZ,gBlk);const by={};
+  M.zfree.forEach(([k,q])=>{let d='M'+q[0]+' '+q[1];for(let i=2;i<q.length;i+=2)d+='L'+q[i]+' '+q[i+1];by[k]=(by[k]||'')+d+'Z'});
+  if(by.gb)el('path',{d:by.gb,fill:'#BFD6A6'},gZ);if(by.o)el('path',{d:by.o,fill:'#CFE3B8'},gZ);
+  const gZL=el('g',{'pointer-events':'none'});svg.insertBefore(gZL,gNM);(M.zlab||[]).forEach(([n,x,y])=>{const t=el('text',{x,y,class:'zl'},gZL);t.textContent=n});
+  document.head.insertAdjacentHTML('beforeend','<style>.zl{fill:#4F6B3C;text-anchor:middle;dominant-baseline:middle;font-weight:600;letter-spacing:.1em;paint-order:stroke;stroke:rgba(255,255,255,.7);stroke-width:3px;stroke-linejoin:round}</style>');
+  const _ap2=apply;apply=function(){_ap2();const u=vb.w/Math.max(1,svg.getBoundingClientRect().width);gZL.setAttribute('font-size',Math.max(11,13)*u)};apply()}
+const ZN={'R(A)':'住宅（甲類）','R(B)':'住宅（乙類）','R(C)':'住宅（丙類）','R(D)':'住宅（丁類）','R(E)':'住宅（戊類）','V':'鄉村式發展','AGR':'農業','G/IC':'政府、機構或社區','O':'休憩用地','GB':'綠化地帶','OU':'其他指定用途','CDA':'綜合發展區','U':'未決定用途','CA':'自然保育區','C':'商業','I':'工業','OS':'露天貯物','R(A)':'住宅（甲類）'};
+const zname=z=>{if(!z)return'';const g=z.replace(/\d+$/,'').replace(/\(\d+\)$/,'');const k=Object.keys(ZN).find(k=>z.startsWith(k));return (k?ZN[k]:'')+' '+z};
 const NOLOT='#BDB8AD';  // land that isn't a plot (lanes, slopes, government land): darker = not buyable
 gLand.innerHTML='';M.land.forEach(r=>el('path',{d:'M'+pts(r[0])+'Z',fill:NOLOT},gLand));
 if(M.water){const gW=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gW,gBlk);let d='';
@@ -168,7 +177,7 @@ function pickLot(id){const l=M.lots[id];
     const prev=snap(l),key=l.c.join(',');hist.push({t:'lot',id,key,prev,old:E.lots[key]});
     E.lots[key]={t:typeOf(a),n:a.n,dev:a.dev};edApply(l,E.lots[key]);repaint(l);mergeFrom=null;save();drawMerges();msg('已標記合併（重新生成地圖時會真正合併）');pickLot(a.id);return}
   mergeFrom=null;selL=l;gSel.setAttribute('points',pts(l.g));
-  $('edTitle').textContent=l.n||'未命名街區';$('edSub').textContent=`#${l.id} · ${l.a} · ${l.m2.toLocaleString()} 平方米 · ${(l.s||[]).join(' × ')}`;
+  $('edTitle').textContent=l.n||'未命名街區';$('edSub').textContent=`#${l.id} · ${l.a} · ${l.m2.toLocaleString()} 平方米 · ${(l.s||[]).join(' × ')}`+(l.z?`\n法定分區：${zname(l.z)}`:'');$('edSub').style.whiteSpace='pre-line';
   const ed=E.lots[l.c.join(',')]||{};
   $('edT').value=typeOf(l);$('edN').value=l.n||'';$('edD').value=l.dev||'';$('edP').value=l.p;$('edNote').value=ed.note||'';
   const extra=[...new Set(M.lots.map(x=>x.dev).filter(d=>d&&!DEVG.some(g=>g[1].includes(d))).concat(DEVS.filter(d=>!DEVG.some(g=>g[1].includes(d)))))],devs=DEVS.concat(extra);

@@ -256,7 +256,7 @@ if any(s[0] == 'L' for s in E['erase']):
         if l_ is not None: continue
         c_ = [float(v) for v in k_.split(',')]
         best = min(keep, key=lambda l: (l['c'][0] - c_[0]) ** 2 + (l['c'][1] - c_[1]) ** 2)
-        if (best['c'][0] - c_[0]) ** 2 + (best['c'][1] - c_[1]) ** 2 < 400: apply(best, e_); late.append(k_)
+        if (best['c'][0] - c_[0]) ** 2 + (best['c'][1] - c_[1]) ** 2 < 400: apply(best, e_); best['ue'] = 1; late.append(k_)
     miss[:] = [m for m in miss if m not in late]
     # one public building = one plot: join pieces that got the same building name and kind
     grp = {}
@@ -326,6 +326,42 @@ if any(s[0] == 'L' for s in E['erase']):
         z['id'] = i
         for li in z['lots']: data['lots'][li]['blk'] = i
     data['blocks'] = nz
+    # statutory zoning (TPB Outline Zoning Plans): each plot's zone; zoned green land without plots drawn green
+    zp = f'{ROOT}/data/{key}-ozp.json'
+    if os.path.exists(zp):
+        from shapely.strtree import STRtree as _STz
+        ZZ = [(z[0], z[1], Polygon(list(zip(z[3][0::2], z[3][1::2]))).buffer(0)) for z in json.load(open(zp))['z']]
+        zt = _STz([g_ for _, _, g_ in ZZ])
+        for l in data['lots']:
+            pg = Polygon(l['g']).buffer(0); best = (0, None)
+            for i_ in zt.query(pg):
+                a_ = ZZ[i_][2].intersection(pg).area
+                if a_ > best[0]: best = (a_, i_)
+            if best[1] is not None: l['z'] = ZZ[best[1]][1]
+        # plots made from unleased land follow their zone: green belt / open space / G/IC are not for sale (Herbert's edits win)
+        zfix = collections.Counter()
+        for l in data['lots']:
+            if not l.get('gl') or l['k'] != 'buy' or l.get('ue') or not l.get('z'): continue
+            zg_ = l['z']
+            if zg_.startswith(('GB', 'CA', 'CPA', 'SSSI', 'CP')): l['k'], l['n'] = 'park', l['n'] or '綠化地帶'
+            elif zg_.startswith('O') and not zg_.startswith('OU'): l['k'], l['n'] = 'park', l['n'] or '休憩用地'
+            elif zg_.startswith('G/IC'): l['k'], l['n'] = 'gov', l['n'] or '政府用地'
+            else: continue
+            zfix[l['k']] += 1
+        print('zoning: unleased plots made unbuyable by zone', dict(zfix))
+        lots_u = unary_union([Polygon(l['g']).buffer(0) for l in data['lots']]).buffer(0.5)
+        freez = edge.difference(lots_u)
+        data['zfree'], data['zlab'] = [], []
+        for grp, lab, zg in ZZ:
+            kind = 'gb' if grp in ('GB', 'CA', 'CPA', 'SSSI', 'CP') else 'o' if grp == 'O' else None
+            if not kind or not zg.intersects(edge): continue
+            g_ = zg.intersection(freez)
+            for q in (g_.geoms if hasattr(g_, 'geoms') else [g_]):
+                if q.geom_type == 'Polygon' and q.area > 150:
+                    data['zfree'].append([kind, [round(v, 1) for xy in q.simplify(1).exterior.coords[:-1] for v in xy]])
+                    if kind == 'gb' and q.area > 15000:
+                        rp = q.representative_point(); data['zlab'].append(['綠化地帶' if grp == 'GB' else '自然保育區', round(rp.x), round(rp.y)])
+        print('zoning: plots tagged', sum(1 for l in data['lots'] if l.get('z')), '| green no-plot pieces', len(data['zfree']))
     E['erase'] = [s for s in E['erase'] if s[0] not in ('L', 'R')]  # baked into the map now
     trim_note = f', trimmed to play area ({len(stray)} stray plots dropped)'
 kz = [z for z in data['blocks'] if z['lots']]; zm = {z['id']: i for i, z in enumerate(kz)}
