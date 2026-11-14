@@ -154,6 +154,15 @@ for z in data['blocks']:
     ks = collections.Counter(keep[i]['k'] for i in z['lots'])
     if z['lots']: z['k'] = 'buy' if ks['buy'] or ks['dev'] else ks.most_common(1)[0][0]
 data['lots'] = keep
+# ---- background map around the district (not playable) ----
+cp = f'{ROOT}/data/{key}-ctx.json'
+if os.path.exists(cp):
+    CX = json.load(open(cp))
+    data['roads'] += CX['roads']; data['labels'] += CX['labels']; data['ctxlu'] = CX['landuse']
+    data.setdefault('bld', []).extend(CX['bld'])
+    x0, y0, x1, y1 = CX['bounds']
+    data['land'].append([[[x0, y0], [x1, y0], [x1, y1], [x0, y1]]])  # inland: the whole wider box is land
+    data['ctxbounds'] = CX['bounds']
 # ---- trim the map to the play area left after 刪地 (clean edge instead of brush marks) ----
 trim_note = ''
 if any(s[0] == 'L' for s in E['erase']):

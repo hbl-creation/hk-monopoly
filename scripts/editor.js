@@ -70,14 +70,21 @@ const OFFMAP='#4E5A63',WATER='#BCD7E3';document.head.insertAdjacentHTML('beforee
 [...svg.children].filter(e=>e.tagName==='rect'&&e.getAttribute('fill')==='#BCD7E3').forEach(e=>e.setAttribute('fill',OFFMAP));
 // holes in the land outline are unmapped gaps, not water: fill them; real water comes from M.water
 // outside the play area: the map still shows, under a dark veil, so players see it can't be played
+// playable area highlighted like a sales-territory map: outside stays a normal map, lightly washed out,
+// the territory gets a bold outline
 if(M.play){const B=8000,veil=el('path',{d:`M${bx0-B} ${by0-B}H${bx1+B}V${by1+B}H${bx0-B}Z`+M.play.map(r=>'M'+pts(r)+'Z').join(''),
-  'fill-rule':'evenodd',fill:'rgba(30,38,47,.62)','pointer-events':'none'});
-  const edge=el('path',{d:M.play.map(r=>'M'+pts(r)+'Z').join(''),fill:'none',stroke:'#F2C46B','stroke-width':2,'stroke-dasharray':'8 5','vector-effect':'non-scaling-stroke','pointer-events':'none'});
+  'fill-rule':'evenodd',fill:'rgba(250,248,243,.5)','pointer-events':'none'});
+  const edge=el('g',{'pointer-events':'none',fill:'none'}),ed=M.play.map(r=>'M'+pts(r)+'Z').join('');
+  el('path',{d:ed,stroke:'rgba(211,63,53,.25)','stroke-width':9,'vector-effect':'non-scaling-stroke','stroke-linejoin':'round'},edge);
+  el('path',{d:ed,stroke:'#B5352C','stroke-width':2.5,'vector-effect':'non-scaling-stroke','stroke-linejoin':'round'},edge);
   const top=()=>[veil,edge,gSel,typeof gMg!=='undefined'?gMg:null,typeof cursor!=='undefined'?cursor:null];
   const lift=()=>top().forEach(g=>g&&svg.appendChild(g));setTimeout(lift,0);
   new MutationObserver(()=>{if(!top().includes(svg.lastElementChild))lift()}).observe(svg,{childList:true});
   if(M.ctx){const gC=el('g',{'pointer-events':'none'});svg.insertBefore(gC,gBlk);  // cut-away plots as background
     el('path',{d:M.ctx.map(r=>'M'+pts(r)+'Z').join(''),fill:'#F4F1EA',stroke:'#CFC9B9','stroke-width':1,'vector-effect':'non-scaling-stroke'},gC)}}
+if(M.ctxlu){const LUC={park:'#CFE3B8',green:'#C3D8AC',farm:'#E4E7C6',res:'#EEEAE2',ind:'#E6E1EA',gov:'#E1E1E1'},gL=el('g',{'pointer-events':'none'});
+  gLand.after(gL);const by={};M.ctxlu.forEach(([k,q])=>{let d='M'+q[0]+' '+q[1];for(let i=2;i<q.length;i+=2)d+='L'+q[i]+' '+q[i+1];by[k]=(by[k]||'')+d+'Z'});
+  Object.entries(by).forEach(([k,d])=>el('path',{d,fill:LUC[k]},gL))}
 const NOLOT='#BDB8AD';  // land that isn't a plot (lanes, slopes, government land): darker = not buyable
 gLand.innerHTML='';M.land.forEach(r=>el('path',{d:'M'+pts(r[0])+'Z',fill:NOLOT},gLand));
 if(M.water){const gW=el('g',{'pointer-events':'none',mask:'url(#lmask)'});svg.insertBefore(gW,gBlk);let d='';

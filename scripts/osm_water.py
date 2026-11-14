@@ -12,7 +12,7 @@ key, LON_A, LON_B, LAT_A, LAT_B = sys.argv[1], *map(float, sys.argv[2:6])
 LAT0, LON0 = (LAT_A + LAT_B) / 2, (LON_A + LON_B) / 2  # must match scripts/<key>.py
 KX = 111320 * math.cos(math.radians(LAT0)); KY = 110574
 P = lambda g: shapely.transform(g, lambda c: [[(x - LON0) * KX, (LAT0 - y) * KY] for x, y in c])
-BB = box(LON_A - .003, LAT_A - .003, LON_B + .003, LAT_B + .003)
+BB = box(LON_A - .025, LAT_A - .025, LON_B + .025, LAT_B + .025)
 src = '/home/claude/hkmap/dl/als/OpenStreetMap/gis_osm_water_a_free_1.geojson'
 out = []
 for f in json.load(open(src))['features']:
@@ -27,7 +27,7 @@ import urllib.request
 from shapely.ops import unary_union
 DSD = ('https://portal.csdi.gov.hk/server/services/common/dsd_rcd_1742963120722_16615/MapServer/WFSServer'
        '?service=wfs&version=2.0.0&request=GetFeature&typeNames=csdi:EngineeredChannel&count=2000'
-       f'&outputFormat=geojson&srsName=EPSG:4326&bbox={LAT_A - .003},{LON_A - .003},{LAT_B + .003},{LON_B + .003},EPSG:4326')
+       f'&outputFormat=geojson&srsName=EPSG:4326&bbox={LAT_A - .025},{LON_A - .025},{LAT_B + .025},{LON_B + .025},EPSG:4326')
 ch = []
 for f in json.load(urllib.request.urlopen(DSD, timeout=300))['features']:
     w = (float(f['properties'].get('WIDTH') or 0) / 1000) or 8
