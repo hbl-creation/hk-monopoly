@@ -38,6 +38,7 @@ CO.small.forEach((c,i)=>WHO['c'+i]={n:c.name,c:'#3F8F8A',small:1,co:c});
 const rnd=()=>Math.random(),pick=a=>a[Math.floor(rnd()*a.length)],clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const fmt=v=>{const a=Math.abs(v);if(a<.005)return'0 億';return(a>=100?Math.round(v).toLocaleString('en'):a>=10?(Math.round(v*10)/10).toFixed(1):(Math.round(v*100)/100).toFixed(2).replace(/0$/,''))+' 億'};
+const fmtRent=v=>v<.995?Math.round(v*1e4).toLocaleString('en')+' 萬':fmt(v);
 const m2=v=>Math.round(v).toLocaleString('en')+' 平方米';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // 銀行顯示名：地圖數據保留原名，遊戲畫面用設計文件嘅虛構名
@@ -74,9 +75,10 @@ const premium=(st,u)=>siteBase(st)*(USES[u||st.use].land-1)*.5*(st.hag||1);
 const buildCost=(st,u)=>siteBase(st)*USES[u||st.use].build;
 const kOf=(st,plan,cond)=>(st.lots.length>=3?1.1:1)*(plan==='fac'?.93:plan==='gov'?.95:1)*(cond?.92:1);
 const opRent=()=>S.op>70?1.1:S.op<30?.9:1;
-function rentOf(l){const o=S.own[l.id];if(!o||o==='sold')return 0;const st=siteOf(l);let r;
-  if(st&&st.st==='done')r=val(l)*USES[st.use].yield;else if(st&&st.st==='building')r=0;else r=base(l)*(l.f?.002:.008);
-  return r*opRent()*S.rentTmp}
+// 預計月租：呢塊地照而家狀態每月收到幾多（未有業主嘅地＝買入後嘅租金）
+function rentEst(l){const st=siteOf(l);if(st&&st.st==='done')return val(l)*USES[st.use].yield*opRent();if(st&&st.st==='building')return 0;return base(l)*(l.f?.002:.008)*opRent()}
+function rentOf(l){const o=S.own[l.id];return!o||o==='sold'?0:rentEst(l)*S.rentTmp}
+const rentDone=(st,u,k)=>siteBase(st)*USES[u||st.use].done*(k||st.k||1)*USES[u||st.use].yield*opRent();
 const debtAll=()=>S.debt.bank+S.debt.fin;
 function worth(who){const v=sum(lotsOf(who),val);
   if(who==='me')return S.cash-debtAll()+v;if(who==='yc')return S.R.yc.cash+v;if(who==='kw')return S.R.kw.cash-S.R.kw.debt+v;return v}
@@ -123,7 +125,14 @@ function paintLot(id){const e=lotEl[id],l=M.lots[id];if(e&&l)e.setAttribute('cla
 // 縮到最細（分區）時地塊唔會畫出嚟：另外畫一層「有業主嘅地」，等玩家喺全區圖都見到自己同對手嘅地
 const gOwn=el('g',{'pointer-events':'none'});gBlk.after(gOwn);
 function drawOwn(){gOwn.innerHTML='';if(!S)return;BUY.forEach(l=>{if(S.own[l.id])el('polygon',{points:pts(l.g),class:lotClass(l),'vector-effect':'non-scaling-stroke'},gOwn)})}
-const _applyOwn=apply;apply=function(){_applyOwn();gOwn.style.display=LOD===1?'':'none'};
+// 地圖上嘅租金標籤：你嘅地放大到見到地塊就顯示；其他可買地放到最大先顯示（買入後預計月租）
+const gRent=el('g',{'pointer-events':'none'});svg.insertBefore(gRent,gNM);let rentLv=0;
+function drawRent(){rentLv=LOD;if(!S||LOD<2){gRent.innerHTML='';return}let h='';
+  BUY.forEach(l=>{const o=S.own[l.id];if(o==='sold'||(o!=='me'&&LOD<3))return;const st=siteOf(l);
+    const t=st&&st.st==='building'?(o==='me'?`施工 ${st.left} 個月`:'施工中'):'租 '+fmtRent(rentEst(l)).replace(' ','');
+    h+=`<text x="${l.c[0]}" y="${l.c[1]}"${l.n&&LOD===3?' dy="1.3em"':''} class="rt${o==='me'?' me':o?' ot':''}">${t}</text>`});gRent.innerHTML=h}
+const _applyOwn=apply;apply=function(){_applyOwn();gOwn.style.display=LOD===1?'':'none';
+  gRent.setAttribute('font-size',9.5*vb.w/Math.max(1,svg.getBoundingClientRect().width));if(LOD!==rentLv)drawRent()};
 function paintBlock(bid){const b=M.blocks[bid];if(!b||b.k!=='buy'||!blkEl[bid])return;const sh={},tot=b.lots.reduce((s,i)=>s+M.lots[i].m2,0)||1;
   b.lots.forEach(i=>{const l=M.lots[i],o=S.own[i]||(l.k==='dev'?'dev':'');if(o&&o!=='sold')sh[o]=(sh[o]||0)+l.m2/tot});
   let fill=baseFill(b);const top=Object.entries(sh).sort((a,c)=>c[1]-a[1])[0];
@@ -135,7 +144,7 @@ function paintLots(ls){const bs=new Set();ls.forEach(l=>{paintLot(l.id);bs.add(l
   el('rect',{width:26,height:26,fill:a},p);el('rect',{width:10,height:26,fill:'#fff',opacity:.6},p)});
 // ── 介面小工具 ──
 let toastT=0;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2600)}
-function modal(o){$('mB').innerHTML=(o.k?`<div class="mk">${o.k}</div>`:'')+(o.t?`<h2>${o.t}</h2>`:'')+(o.h||'');const B=$('mBtns');B.innerHTML='';
+function modal(o){$('mB').innerHTML=(o.k?`<div class="mk">${o.k.replace(/ · /g,'　')}</div>`:'')+(o.t?`<h2>${o.t}</h2>`:'')+(o.h||'');const B=$('mBtns');B.innerHTML='';
   (o.b||[{l:'繼續',c:'primary'}]).forEach(b=>{const e=document.createElement('button');e.innerHTML=b.l;if(b.c)e.className=b.c;if(b.dis)e.disabled=true;
     e.onclick=()=>{if(!b.keep)closeModal();b.f&&b.f()};B.appendChild(e)});
   $('modal').className=o.cls||'';$('modal').hidden=false;document.body.classList.add('mo');$('mB').scrollTop=0;if(o.after)o.after()}
@@ -164,7 +173,7 @@ function sellRaw(l){const st=siteOf(l),ls=st?siteLots(st):[l];if(st&&st.st)retur
 function negotiate(k){const c=WHO[k].co,ls=lotsOf(k),V=sum(ls,val),ng=S.nego[k]||0;
   const offers=[[.95,30,'壓價'],[1.1,70,'市價加一成'],[1.3,100,'爽快價']];
   modal({k:'集團資料卡',t:c.name,h:`<p class="dim">${esc(c.role||'小型業主')}。唔擴張、唔競投、唔記仇，淨係收租。</p>
-    <div class="box">${row('持有地塊',ls.length+' 塊')}${row('總面積',m2(sum(ls,l=>l.m2)))}${row('物業市值',fmt(V))}${row('每月租金',fmt(sum(ls,rentOf)))}</div>
+    <div class="box">${row('持有地塊',ls.length+' 塊')}${row('總面積',m2(sum(ls,l=>l.m2)))}${row('物業市值',fmt(V))}${row('每月租金',fmtRent(sum(ls,rentEst)))}</div>
     <p>提出整間收購，一次過接收全部地塊。${ng?'<br><b>今個月已經傾過一次，對方唔會再聽低過上次嘅價。</b>':''}</p>`,
     b:offers.map(([x,p,n],i)=>({l:`${n} ${fmt(V*x)}<small>成功機會 ${p}%</small>`,c:i===1?'primary':'',dis:S.cash<V*x||i<ng,f:()=>{
       if(rnd()*100<p){S.cash-=V*x;ls.forEach(l=>take(l,k));paintLots(ls);
@@ -200,7 +209,8 @@ function applyModal(l){const st=ensureSite(l),farm=!!l.f,uses=Object.keys(USES).
         return`<button class="opt${u===use?' on':''}" data-u="${u}"><b>${farm?'農地':'舊樓'} → ${U.n}</b><span class="pill">${b?'未符合':'機會約 '+chance(st,u,plan)+'%'}</span>
         <small>${b?'✕ '+b:U.need}</small>
         <small>補地價 ${fmt(pr)}　建築費 ${fmt(bc)}　工期 ${U.months} 個月</small>
-        <small>完成後估值 <b>${fmt(dv)}</b>　預計賺 <b>${fmt(dv-V-pr-bc)}</b></small></button>`}).join('')}</div>
+        <small>完成後估值 <b>${fmt(dv)}</b>　預計賺 <b>${fmt(dv-V-pr-bc)}</b></small>
+        <small>落成後預計月租 <b>${fmtRent(rentDone(st,u,k))}</b>（而家 ${fmtRent(sum(siteLots(st),rentEst))}）</small></button>`}).join('')}</div>
       <div class="plans">${Object.keys(PLANS).filter(p=>p!=='gov'||use!=='village').map(p=>`<button class="plan${p===plan?' on':''}" data-p="${p}"><b>${PLANS[p].n}</b><small>${PLANS[p].d}</small></button>`).join('')}</div>
       ${st.retry?`<p class="dim">之前被否決過 ${st.retry} 次；修改方案再申請，機會每次 +8。</p>`:''}`,
       b:[{l:`遞交申請（費用 ${fmt(APP_FEE)}）`,c:'primary',dis:!!blk||S.cash<APP_FEE,f:()=>submit(st,use,plan)},{l:'取消'}],
@@ -232,41 +242,44 @@ function sellDone(st){const p=siteVal(st)*saleF(),ls=siteLots(st);
 // ── 地塊資料卡 ──
 function select(id){SEL=id;closeSheet();gSel.setAttribute('points',pts(M.lots[id].g));$('deed').hidden=false;renderCard()}
 function closeCard(){SEL=null;gSel.setAttribute('points','');$('deed').hidden=true}
-function renderCard(){if(SEL===null)return;const l=M.lots[SEL];if(!l){closeCard();return}const dh=$('dh');let body='',btn=[];
+function cardHead(c,tag,title,sub,seal){$('deed').style.setProperty('--c',c);$('dTag').textContent=tag;$('dSt').textContent=title;$('dSub').textContent=sub||'';$('dSeal').textContent=seal}
+const figs=a=>`<div class="figs">${a.map(([k,v,n])=>`<div><i>${k}</i><b>${v}</b>${n?`<small>${n}</small>`:''}</div>`).join('')}</div>`;
+function renderCard(){if(SEL===null)return;const l=M.lots[SEL];if(!l){closeCard();return}let body='',btn=[];
   const B=(label,fn,cls,dis)=>{btn.push({label,fn,cls,dis})};
-  if(l.k==='buy'){const o=S.own[l.id],st=siteOf(l),U=st&&st.use?USES[st.use]:null,done=st&&st.st==='done';
-    const type=done?U.n:l.f?'農地':String(l.z||'').startsWith('V')?'鄉村屋地':'市區物業';
-    dh.style.background=o?WHO[o].c:l.f?'#7C8A2E':'#B78716';
-    $('dTag').textContent=l.a+' · '+type+(inZone(l)&&!done?' · 發展區':'');$('dSt').textContent=lotName(l);$('dSub').textContent=l.n&&l.s?l.s.join(' × '):'';
-    const merged=st&&st.lots.length>1;
-    body=row(merged?`地盤（${st.lots.length} 塊）`:'佔地',m2(merged?siteM2(st):l.m2))+row(merged?'地盤市值':'市值',fmt(merged?siteVal(st):val(l)))+
-      (o&&o!=='sold'?row('每月租金',fmt(merged?sum(siteLots(st),rentOf):rentOf(l))):'')+row('業主',o?WHO[o].n:'未有業主');
-    if(!o){const p=askPrice(l);body+=`<div class="note">${l.f?(S.gen>=60?'鄉紳關係好，收地平一成。':S.gen<35?'鄉紳關係差，村民坐地起價，貴一成半。':'')+(inZone(l)?'發展區內農地，可以申請改做住宅。':'農地可以同鄉紳合作起村屋。'):'現成物業，買入即收租；合併相鄰地塊可以重建。'}</div>`;
-      B(`買入 ${fmt(p)}`,()=>buy(l),'primary',S.cash<p)}
-    else if(o==='me'){
+  if(l.k==='buy'){const o=S.own[l.id],st=siteOf(l),U=st&&st.use?USES[st.use]:null,done=st&&st.st==='done',mine=o==='me';
+    const type=done?U.n:l.f?'農地':String(l.z||'').startsWith('V')?'鄉村屋地':'市區物業',merged=st&&st.lots.length>1,ls=merged?siteLots(st):[l];
+    cardHead(o?WHO[o].c:l.f?'#6E7F1F':'#B8913A',l.a+'　'+type+(inZone(l)&&!done?'　發展區':''),lotName(l),l.n&&l.n!=='空地'&&l.s?l.s.join(' × '):'',mine?'已購':o==='sold'?'售出':o?WHO[o].n.slice(0,2):'待售');
+    const V=sum(ls,val),R=sum(ls,rentEst),ask=!mine&&o!=='sold'?askPrice(l):null,cost=mine||merged?V:ask||V,rl=mine?'每月租金':'預計月租';
+    const bld=st&&st.st==='building';
+    body=figs([[merged?`地盤市值`:'市值',fmt(V)],o==='sold'?[rl,'—']:bld?[rl,'0','施工期間唔收租']:[rl,fmtRent(merged||mine?R:rentEst(l)),mine?'每月入賬':'買入後每月收'],
+      o==='sold'||bld?['年回報','—']:['年回報',((merged||mine?R:rentEst(l))*12/(cost||1)*100).toFixed(1)+'%',mine?'以市值計':'以買入價計']])+
+      row(merged?`地盤（${st.lots.length} 塊）`:'佔地',m2(sum(ls,x=>x.m2)))+row('業主',o?WHO[o].n:'未有業主');
+    if(!o){body+=`<div class="note">${l.f?(S.gen>=60?'鄉紳關係好，收地平一成。':S.gen<35?'鄉紳關係差，村民坐地起價，貴一成半。':'')+(inZone(l)?'發展區內農地，可以申請改做住宅。':'農地租金好低，要同鄉紳合作起村屋先賺到錢。'):'現成物業，買入即收租；合併相鄰地塊可以重建。'}</div>`;
+      B(`買入 ${fmt(ask)}`,()=>buy(l),'primary',S.cash<ask)}
+    else if(mine){
       if(!st||!st.st){const set=mergeSet(l),cur=st?st.lots.length:1;
         if(st&&st.retry)body+=`<div class="note">申請被否決過 ${st.retry} 次，可以修改方案再申請。</div>`;
         if(set.length>cur){const fee=sum(set,val)*.01;B(`合併相鄰 ${set.length} 塊（費用 ${fmt(fee)}）`,()=>doMerge(l),'primary',S.cash<fee)}
-        B('遞交改變用途申請',()=>applyModal(l),set.length>cur?'':'primary');B(`放售 ${fmt(sum(st?siteLots(st):[l],base)*.9)}`,()=>sellRaw(l))}
-      else if(st.st==='applied')body+=`<div class="status">📨 ${CFG.TPB}審批中：改做${U.n}（${PLANS[st.plan].n}），機會約 ${chance(st,st.use,st.plan)}%。撳「下個月」就有結果。</div>`;
-      else if(st.st==='cond'){body+=`<div class="status">◐ 有條件批准：要加建公共設施同降低高度，完成價值 −8%。</div>`;
+        B('遞交改變用途申請',()=>applyModal(l),set.length>cur?'':'primary');B(`放售 ${fmt(sum(ls,base)*.9)}`,()=>sellRaw(l))}
+      else if(st.st==='applied')body+=`<div class="status">${CFG.TPB}審批中：改做${U.n}（${PLANS[st.plan].n}），機會約 ${chance(st,st.use,st.plan)}%。撳「下個月」就有結果。</div>`+row('落成後預計月租',fmtRent(rentDone(st,st.use,kOf(st,st.plan))));
+      else if(st.st==='cond'){body+=`<div class="status">有條件批准：要加建公共設施同降低高度，完成價值 −8%。</div>`;
         B('接受條件',()=>{approve(st,1);log(`你接受咗${CFG.TPB}嘅附帶條件。`);paintLots(siteLots(st));refresh()},'primary');B('放棄申請',()=>{st.st=null;paintLots(siteLots(st));refresh()})}
       else if(st.st==='approved'){const pr=premium(st),bc=buildCost(st),dv=siteBase(st)*U.done*st.k,wait=st.wait===S.m;
-        body+=`<div class="status">✔ 已獲批改做${U.n}。${wait?CFG.LANDS+'仲「研究緊」，下個月先動得工。':''}</div>`+row('補地價'+(st.hag?'（已議價）':''),fmt(pr))+row('建築費',fmt(bc))+row('工期',U.months+' 個月')+row('完成後估值',fmt(dv));
+        body+=`<div class="status ok">已獲批改做${U.n}。${wait?CFG.LANDS+'仲「研究緊」，下個月先動得工。':''}</div>`+row('補地價'+(st.hag?'（已議價）':''),fmt(pr))+row('建築費',fmt(bc))+row('工期',U.months+' 個月')+row('完成後估值',fmt(dv))+row('落成後預計月租',fmtRent(rentDone(st)));
         B(`動工（共 ${fmt(pr+bc)}）`,()=>startBuild(st),'primary',wait||S.cash<pr+bc);if(!st.hagged)B('同'+CFG.LANDS+'議價',()=>haggle(st))}
-      else if(st.st==='building')body+=`<div class="status">🏗 興建${U.n}中，仲有 ${st.left} 個月完工。工期內唔收租。</div>`+row('完成後估值',fmt(siteBase(st)*U.done*st.k));
-      else if(done){body+=`<div class="status">🏠 ${U.n}已落成，收租中。</div>`;B(`分拆出售 ${fmt(siteVal(st)*saleF())}`,()=>sellDone(st),'primary')}}
+      else if(bld)body+=`<div class="status">興建${U.n}中，仲有 ${st.left} 個月完工。</div>`+row('完成後估值',fmt(siteBase(st)*U.done*st.k))+row('落成後預計月租',fmtRent(rentDone(st)));
+      else if(done){body+=`<div class="status ok">${U.n}已落成，收租中。</div>`;B(`分拆出售 ${fmt(siteVal(st)*saleF())}`,()=>sellDone(st),'primary')}}
     else if(o==='sold')body+=`<div class="note">單位已經賣晒俾散戶，業主立案法團第一次開會就嘈咗三個鐘。</div>`;
-    else if(WHO[o].small){const p=askPrice(l);body+=`<div class="note">${WHO[o].n}：${esc(WHO[o].co.role||'小型業主')}。可以逐塊買（市價 ×1.2），或者整間收購。</div>`;
-      B('資料卡／整間收購',()=>negotiate(o),'primary');B(`淨係買呢塊 ${fmt(p)}`,()=>buy(l),'',S.cash<p)}
-    else{const p=askPrice(l),R=o==='yc'?R_MAIN:R_SPEC;
-      body+=`<div class="note">${R.name}：${esc(R.style||'')}。${st&&st.st?'呢度有工程進行緊，對方唔賣。':o==='kw'&&S.R.kw.distress>0?'對方資金緊張，肯蝕讓（市價八折）。':o==='yc'?'硬收購要俾市價 1.5 倍，而且會結怨。':'炒家開價：市價 1.3 倍。'}</div>`;
-      if(p!==null)B(`收購 ${fmt(p)}`,()=>buy(l),'primary',S.cash<p)}}
-  else if(l.k==='dev'){const c=CO.major.find(x=>x.name===l.dev);dh.style.background='#5B3F8C';$('dTag').textContent=l.a+' · 大地產商物業';$('dSt').textContent=lotName(l);$('dSub').textContent=l.dev||'';
-    body=row('佔地',m2(l.m2))+row('市值',fmt(l.p*S.idx))+`<div class="note">${c?esc(c.style)+'。弱點：'+esc(c.weakness)+'。':''}大集團嘅物業今章唔放售——你暫時未夠班同佢哋傾。</div>`}
-  else if(l.k==='bank'){dh.style.background='#1F7A66';$('dTag').textContent='銀行 · 非賣品';$('dSt').textContent=dn(l);$('dSub').textContent=(l.s||[]).join(' × ');
+    else if(WHO[o].small){body+=`<div class="note">${WHO[o].n}：${esc(WHO[o].co.role||'小型業主')}。可以逐塊買（市價 ×1.2），或者整間收購。</div>`;
+      B('資料卡／整間收購',()=>negotiate(o),'primary');B(`淨係買呢塊 ${fmt(ask)}`,()=>buy(l),'',S.cash<ask)}
+    else{const Rv=o==='yc'?R_MAIN:R_SPEC;
+      body+=`<div class="note">${Rv.name}：${esc(Rv.style||'')}。${st&&st.st?'呢度有工程進行緊，對方唔賣。':o==='kw'&&S.R.kw.distress>0?'對方資金緊張，肯蝕讓（市價八折）。':o==='yc'?'硬收購要俾市價 1.5 倍，而且會結怨。':'炒家開價：市價 1.3 倍。'}</div>`;
+      if(ask!==null)B(`收購 ${fmt(ask)}`,()=>buy(l),'primary',S.cash<ask)}}
+  else if(l.k==='dev'){const c=CO.major.find(x=>x.name===l.dev);cardHead('#5B3F8C',l.a+'　大地產商物業',lotName(l),l.dev||'','非賣');
+    body=figs([['市值',fmt(l.p*S.idx)],['佔地',Math.round(l.m2).toLocaleString('en'),'平方米']])+`<div class="note">${c?esc(c.style)+'。弱點：'+esc(c.weakness)+'。':''}大集團嘅物業今章唔放售，你暫時未夠班同佢哋傾。</div>`}
+  else if(l.k==='bank'){cardHead('#1F7A66','銀行　非賣品',dn(l),(l.s||[]).join(' × '),'銀行');
     body=`<div class="note">入去借錢、還錢。</div>`;B('入銀行',()=>{closeCard();openSheet('bank')},'primary')}
-  else{const K=KIND[l.k]||KIND.gov;dh.style.background=K.head||'#6B717C';$('dTag').textContent=K.tag+' · 非賣品';$('dSt').textContent=l.n||K.tag;$('dSub').textContent=(l.s||[]).join(' × ');
+  else{const K=KIND[l.k]||KIND.gov;cardHead(K.head||'#6B717C',K.tag+'　非賣品',l.n||K.tag,(l.s||[]).join(' × '),'非賣');
     body=row('佔地',m2(l.m2))+`<div class="note">${{park:'公眾休憩用地，唔可以買賣。',gov:'政府或公共機構用地，唔可以買賣。',rel:'宗教場所，唔可以買賣。',comm:'學校、醫院同社區設施，唔可以買賣。',mark:'地標唔放售。'}[l.k]||''}</div>`}
   $('dBody').innerHTML=body+'<div class="act"></div>';const A=$('dBody').querySelector('.act');
   btn.forEach(b=>{const e=document.createElement('button');e.textContent=b.label;if(b.cls)e.className=b.cls;e.disabled=!!b.dis;e.onclick=b.fn;A.appendChild(e)})}
@@ -279,10 +292,10 @@ function renderSheet(){if(!TAB)return;$('shT').textContent=TABS[TAB];const B=$('
   if(TAB==='proj'){const mine=lotsOf('me'),seen=new Set(),items=[];
     mine.forEach(l=>{const st=siteOf(l);if(st){if(seen.has(st.id))return;seen.add(st.id);items.push({l,st})}else items.push({l})});
     const w=worth('me');
-    h=`<div class="box">${row('現金',fmt(S.cash))}${row('物業市值',fmt(sum(mine,val)))}${row('貸款',fmt(debtAll()))}${row('身家',fmt(w))}${row('開局身家',fmt(S.start))}${row('解鎖第二章要',fmt(S.start*CFG.UNLOCK)+' 而且贏'+N.yc)}</div>`;
+    h=`<div class="box">${row('現金',fmt(S.cash))}${row('物業市值',fmt(sum(mine,val)))}${row('每月租金收入',fmtRent(sum(mine,rentEst)))}${row('貸款',fmt(debtAll()))}${row('身家',fmt(w))}${row('開局身家',fmt(S.start))}${row('解鎖第二章要',fmt(S.start*CFG.UNLOCK)+' 而且贏'+N.yc)}</div>`;
     h+=items.length?items.sort((a,b)=>(b.st&&b.st.st?1:0)-(a.st&&a.st.st?1:0)).map(({l,st})=>`<button class="item" data-go="${l.id}"><b>${esc(lotName(l))}${st&&st.lots.length>1?' 等 '+st.lots.length+' 塊':''}</b>
       <span class="chip ${st&&st.st?'c-'+st.st:''}">${st&&st.st?ST_LABEL[st.st]+(st.st==='building'?' · 仲有 '+st.left+' 個月':''):st&&st.lots.length>1?'已合併':l.f?'農地':'收租'}</span>
-      <small>${l.a} · ${st&&st.use&&st.st?USES[st.use].n+' · ':''}市值 ${fmt(st?siteVal(st):val(l))}</small></button>`).join(''):'<p class="dim">你乜都冇。大哥會好開心。</p>'}
+      <small>${l.a}　${st&&st.use&&st.st?USES[st.use].n+'　':''}市值 ${fmt(st?siteVal(st):val(l))}　月租 ${fmtRent(sum(st?siteLots(st):[l],rentEst))}</small></button>`).join(''):'<p class="dim">你乜都冇。大哥會好開心。</p>'}
   else if(TAB==='riv'){const bar=(k,v)=>`<div class="attr"><span>${k}</span><div><i style="width:${v*10}%"></i></div><b>${v}</b></div>`;
     const card=(k,R,extra)=>{const ls=lotsOf(k);return`<div class="rcard" style="--c:${WHO[k].c}"><div class="rh"><b>${R.name}</b><span>${esc(R.role||'')}</span></div>
       <p>${esc(R.style||'')}　<span class="dim">弱點：${esc(R.weakness||'')}</span></p>${bar('資金',R.cash)}${bar('進取',R.aggressive)}${bar('狡猾',R.cunning)}${bar('記仇',R.grudge)}
@@ -316,11 +329,11 @@ const ACTS={hall:{g:'op',n:'資助社區中心',c:3,d:12,x:()=>'社區中心剪�
 function doAct(k){const a=ACTS[k];if(S.did[k]||S.cash<a.c)return;S.cash-=a.c;S.stats.fees+=a.c;S.did[k]=1;if(a.g==='op')S.op=clamp(S.op+a.d,0,100);else S.gen=clamp(S.gen+a.d,0,100);
   const t=a.x();log(`${a.n}（${fmt(a.c)}）：${t}`);toast(`${a.g==='op'?'民意':'鄉紳關係'} +${a.d}`);refresh()}
 // ── HUD／教學 ──
-function hud(){const w=worth('me'),d=(w/S.start-1)*100;$('hM').textContent=S.over?'年結':`第 ${S.m} 月 / ${CFG.MONTHS}`;
+function hud(){const w=worth('me'),d=(w/S.start-1)*100;$('hM').textContent=S.over?'結':S.m;$('hMt').textContent=S.over?'年結':'/ '+CFG.MONTHS+' 月';
   $('hCash').textContent=fmt(S.cash).replace(' 億','');$('hWorth').textContent=fmt(w).replace(' 億','');
   $('hDelta').textContent=(d>=0?'▲':'▼')+Math.abs(d).toFixed(0)+'%';$('hDelta').className=d>=0?'up':'dn';
   $('hOp').textContent=Math.round(S.op);$('hOp').className=S.op<30?'dn':S.op>70?'up':'';$('hGen').textContent=Math.round(S.gen);$('hGen').className=S.gen<30?'dn':S.gen>=60?'up':'';
-  $('next').textContent=S.over?'睇年報':S.m>=CFG.MONTHS?'年結 ›':'下個月 ›'}
+  $('next').textContent=S.over?'睇年報':S.m>=CFG.MONTHS?'年結':'下個月'}
 const TUT=[
   {t:`收購${N.luk}`,d:`${N.luk}老闆想退休，手上有幾塊市中心地。撳佢嘅地 →「資料卡／整間收購」→ 揀個價。`,go:()=>focusLots(lotsOf('c0')),ok:()=>!lotsOf('c0').length},
   {t:'合併相鄰地塊',d:'撳你啱啱收購嘅地 →「合併相鄰地塊」。相連嘅地合埋先起得大，三塊或以上仲有地積比獎勵。',go:()=>focusLots(lotsOf('me').filter(l=>!l.f)),ok:()=>Object.values(S.sites).some(s=>s.owner==='me'&&s.lots.length>1)},
@@ -329,7 +342,7 @@ const TUT=[
 function coach(){const c=$('coach');if(S.over||S.tut>=TUT.length){c.hidden=true;return}
   while(S.tut<TUT.length&&TUT[S.tut].ok())S.tut++;if(S.tut>=TUT.length){c.hidden=true;toast('教學完成，之後靠你自己');return}
   const T=TUT[S.tut];c.hidden=false;$('coT').textContent=`教學 ${S.tut+1}/${TUT.length} · ${T.t}`;$('coD').textContent=T.d;$('coGo').hidden=!T.go;$('coGo').onclick=T.go}
-function refresh(){hud();renderCard();renderSheet();coach();save()}
+function refresh(){hud();renderCard();renderSheet();coach();drawRent();save()}
 // ── 月結 ──
 function finishSite(st,rep){st.st='done';const ls=siteLots(st),nm=lotName(ls[0]);
   if(st.owner==='me'){S.stats.done++;const t=`🏠 「${nm}」嘅${USES[st.use].n}落成，估值 ${fmt(siteVal(st))}。可以收租，或者分拆出售。`;rep.lines.push(t);log(t,1)}
@@ -377,7 +390,7 @@ function rivals(rep){const Y=S.R.yc,K=S.R.kw,mine=new Set(lotsOf('me').map(l=>l.
   rep.riv.forEach(t=>log(t))}
 function nextMonth(){if(S.over){annual();return}closeCard();closeSheet();const rep=settle();rivals(rep);S.m++;
   const net=rep.inc-rep.int;
-  const h=`<div class="box">${row('租金收入','+'+fmt(rep.inc))}${row('貸款利息','−'+fmt(rep.int))}${row('本月淨額',(net>=0?'+':'−')+fmt(Math.abs(net)))}${row('現金',fmt(S.cash))}</div>`+
+  const h=`<div class="box">${row('租金收入','+'+fmt(rep.inc))}${row('貸款利息',(rep.int>.005?'−':'')+fmt(rep.int))}${row('本月淨額',(net>=0?'+':'−')+fmt(Math.abs(net)))}${row('現金',fmt(S.cash))}</div>`+
     (rep.lines.length?'<h3>你嘅項目</h3>'+rep.lines.map(t=>`<p class="lg">${esc(t)}</p>`).join(''):'')+
     '<h3>對手動向</h3>'+(rep.riv.length?rep.riv.map(t=>`<p class="lg">${esc(t)}</p>`).join(''):'<p class="lg dim">今個月對手按兵不動。通常唔係好事。</p>');
   if(S.m>CFG.MONTHS){S.over=true;S.m=CFG.MONTHS;refresh();modal({k:`第 ${rep.m} 個月結算`,t:'十二個月到期',h,cls:'tall',b:[{l:'睇年報',c:'primary',f:annual}]});return}
@@ -459,6 +472,7 @@ fit=function(){const r=svg.getBoundingClientRect(),P=(M.play||[]).flat();let x0=
   const wide=r.width>=900,top=wide?20:70,bot=wide?20:90,uw=r.width-24,uh=Math.max(120,r.height-top-bot-24),u=Math.max((x1-x0)/uw,(y1-y0)/uh);
   vb.w=r.width*u;vb.h=r.height*u;vb.x=(x0+x1)/2-vb.w/2;vb.y=(y0+y1)/2-(top+(r.height-top-bot)/2)*u;apply()};
 // ── 啟動 ──
+$('demoTag').textContent=`試玩版數值　審批 ${CFG.APPROVE_MONTHS} 個月、村屋 ${USES.village.months} 個月、住宅 ${USES.res.months} 個月　ⓘ`;
 $('next').onclick=nextMonth;$('menuBtn').onclick=menu;$('demoTag').onclick=help;$('dX').onclick=closeCard;$('shX').onclick=closeSheet;
 $('coSkip').onclick=()=>{S.tut=TUT.length;refresh()};
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>TAB===b.dataset.tab&&b.closest('#dock')?closeSheet():openSheet(b.dataset.tab));

@@ -4,30 +4,37 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1D2530">
+<meta name="theme-color" content="#0F3B33">
 <title>香港地產大富翁 · 第一章 元朗（試玩版）</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@700;900&family=Noto+Sans+HK:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@600;900&family=Noto+Sans+HK:wght@400;500;700&family=LXGW+WenKai+TC:wght@400;700&display=swap">
 <style>
-/* 第一章試玩版版面（手機直版優先）：全屏地圖；頂部一行資料列；底部分頁列＋「下個月」；
-   地塊資料卡同分頁內容係底部抽屜（電腦版變左邊側欄）；事件、月結、年報用置中卡片。 */
+/* 第一章試玩版版面（手機直版優先）
+   視覺：銀行存摺同地契 —— 墨綠外框、黃銅字、淡綠賬簿紙、印泥紅圖章。
+   地塊卡係一張地契：右上角蓋印（已購／待售／業主名），數字用襯線大字。
+   結構：全屏地圖；頂部資料列（月份牌＋四個數）；底部分頁列＋「下個月」圖章；
+   地塊卡同分頁內容係底部抽屜（電腦版喺左邊）；事件、月結、年報用置中卡片。 */
 :root{
-  --ink:#1D2530; --dim:#5E6672; --line:rgba(29,37,48,.14); --paper:#FBF8F1; --panel:#FFFFFF;
-  --me:#D33F35; --gold:#B78716; --up:#1F8A55; --dn:#C2452F;
-  --display:"Noto Serif HK","Songti TC",serif; --body:"Noto Sans HK","PingFang HK","Microsoft JhengHei",sans-serif;
-  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px); --dock:62px;
+  --green:#0F3B33; --green2:#0A2A25; --ink:#13231F; --dim:#55635E; --line:rgba(15,59,51,.18);
+  --paper:#F1F4E9; --panel:#FBFCF7; --rule:rgba(15,59,51,.09);
+  --brass:#A8822B; --brass-lt:#E6CD86; --seal:#C8321F; --me:#D33F35; --up:#1D7F50; --dn:#B93A22;
+  --display:"Noto Serif HK","Songti TC","PMingLiU",serif;
+  --body:"Noto Sans HK","PingFang HK","Microsoft JhengHei",sans-serif;
+  --kai:"LXGW WenKai TC","Kaiti TC","BiauKai","DFKai-SB","Noto Serif HK",serif;
+  --st:env(safe-area-inset-top,0px); --sb:env(safe-area-inset-bottom,0px); --dock:64px; --hud:78px;
   color-scheme:light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
 html,body{height:100%;margin:0}
-body{background:#4E5A63;color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.5;overflow:hidden;overscroll-behavior:none}
+body{background:#4E5A63;color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.55;overflow:hidden;overscroll-behavior:none}
 #app{position:fixed;inset:0;overflow:hidden}
-button{font:500 14px var(--body);color:var(--ink);cursor:pointer;border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 14px}
-button.primary{background:var(--me);border-color:var(--me);color:#fff;font-weight:700}
-button:disabled{opacity:.42;cursor:not-allowed}
-button:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+button{font:500 14px var(--body);color:var(--green);cursor:pointer;border:1.5px solid var(--green);background:var(--panel);border-radius:8px;padding:10px 14px}
+button.primary{background:var(--seal);border-color:var(--seal);color:#fff;font-weight:700;box-shadow:inset 0 0 0 2px var(--seal),inset 0 0 0 3px rgba(255,255,255,.55)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:active:not(:disabled){transform:translateY(1px)}
+button:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
 .dim{color:var(--dim)} .up{color:var(--up)} .dn{color:var(--dn)}
-/* map */
+/* ── map ── */
 svg#map{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab;user-select:none;-webkit-user-select:none}
 svg#map.drag{cursor:grabbing}
 .blk{stroke:#CFC9B9;stroke-width:1.2;cursor:zoom-in}
@@ -39,155 +46,189 @@ svg#map.drag{cursor:grabbing}
 .lot.o-sm{fill:#7DB5AE!important;stroke:#2F6F69}
 .lot.o-sold{fill:#B9ADA3!important;stroke:#7D7268}
 .lot.mg{stroke-width:2.6}
-.lot.s-applied,.lot.s-cond,.lot.s-approved{stroke:#1D2530;stroke-width:2.6;stroke-dasharray:6 4}
+.lot.s-applied,.lot.s-cond,.lot.s-approved{stroke:#13231F;stroke-width:2.6;stroke-dasharray:6 4}
 .lot.o-me.s-building{fill:url(#pb-me)!important} .lot.o-yc.s-building{fill:url(#pb-yc)!important}
 .lot.o-me.s-done{fill:#8E1F18!important;stroke:#5A120D;stroke-width:2}
 .lot.zn{stroke:#B78716;stroke-width:2;stroke-dasharray:4 3}
-.lot.hl{stroke:#1D2530;stroke-width:4;animation:hl .7s ease-in-out infinite alternate}
+.lot.hl{stroke:#13231F;stroke-width:4;animation:hl .7s ease-in-out infinite alternate}
 @keyframes hl{to{stroke:#F2C14E;stroke-width:7}}
 .nm{font-family:var(--display);font-weight:900;paint-order:stroke;stroke:#fff;stroke-width:.32em;stroke-linejoin:round;text-anchor:middle;dominant-baseline:central;pointer-events:none}
 .ln{font-family:var(--body);font-weight:500;fill:#3B3426;paint-order:stroke;stroke:rgba(255,255,255,.92);stroke-width:.3em;stroke-linejoin:round;text-anchor:middle;dominant-baseline:central;pointer-events:none}
 .rl{font-family:var(--body);font-weight:500;fill:#4A4232;paint-order:stroke;stroke:rgba(255,255,255,.95);stroke-width:.35em;stroke-linejoin:round;text-anchor:middle;dominant-baseline:central;pointer-events:none}
-.al{font-family:var(--display);font-weight:900;fill:rgba(29,37,48,.55);text-anchor:middle;dominant-baseline:central;pointer-events:none;letter-spacing:.2em}
-/* top bar */
-#hud{position:absolute;left:0;right:0;top:0;z-index:20;display:flex;align-items:stretch;gap:6px;
-  padding:calc(6px + var(--st)) max(8px,env(safe-area-inset-right,0px)) 6px max(8px,env(safe-area-inset-left,0px));
-  background:linear-gradient(#1D2530,#1D2530f2);color:#F4EFE3;box-shadow:0 4px 18px rgba(0,0,0,.28)}
-#menuBtn{background:transparent;border-color:rgba(255,255,255,.22);color:#F4EFE3;padding:0;width:40px;font-size:18px;flex:none}
-.when{display:flex;flex-direction:column;justify-content:center;min-width:0;flex:none;padding-right:2px}
-.when b{font-family:var(--display);font-weight:900;font-size:14px;white-space:nowrap;letter-spacing:.02em}
-#demoTag{all:unset;cursor:pointer;font-size:10px;color:#F2C14E;white-space:nowrap}
+.al{font-family:var(--display);font-weight:900;fill:rgba(15,59,51,.6);text-anchor:middle;dominant-baseline:central;pointer-events:none;letter-spacing:.2em}
+.rt{font-family:var(--body);font-weight:700;fill:#0F3B33;paint-order:stroke;stroke:rgba(255,255,255,.95);stroke-width:.34em;stroke-linejoin:round;text-anchor:middle;dominant-baseline:central;font-variant-numeric:tabular-nums}
+.rt.me{fill:#fff;stroke:#6E1711} .rt.ot{fill:#fff;stroke:rgba(19,35,31,.85)}
+/* ── top bar：月份牌＋四個數；下面一行黃銅字講明係試玩版數值 ── */
+#hud{position:absolute;left:0;right:0;top:0;z-index:20;color:#F3EFDD;background:var(--green);
+  border-bottom:2px solid var(--brass);box-shadow:0 6px 20px rgba(6,24,21,.35);padding-top:var(--st)}
+.hud-r{display:flex;align-items:stretch;gap:8px;padding:7px max(8px,env(safe-area-inset-right,0px)) 6px max(8px,env(safe-area-inset-left,0px))}
+#menuBtn{background:transparent;border:1.5px solid rgba(230,205,134,.5);color:var(--brass-lt);padding:0;width:38px;font-size:17px;flex:none;border-radius:8px}
+.cal{flex:none;width:46px;border-radius:6px;overflow:hidden;background:#FBFCF7;color:var(--ink);text-align:center;display:flex;flex-direction:column;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.cal u{display:block;text-decoration:none;background:var(--seal);color:#fff;font-size:9.5px;line-height:15px;letter-spacing:.2em;padding-left:.2em}
+.cal b{font-family:var(--display);font-weight:900;font-size:20px;line-height:21px;font-variant-numeric:tabular-nums}
+.cal i{font-style:normal;font-size:8.5px;line-height:10px;color:var(--dim);padding-bottom:2px}
 #lod{display:none}
-.stats{flex:1;display:grid;grid-template-columns:1.25fr 1.45fr .8fr .8fr;gap:4px;min-width:0}
-.stat{all:unset;cursor:pointer;display:flex;flex-direction:column;justify-content:center;min-width:0;padding:3px 7px;border-radius:9px;background:rgba(255,255,255,.08)}
-.stat i{font-style:normal;font-size:10px;color:#B9BEC6;white-space:nowrap}
-.stat b{font-family:var(--display);font-weight:900;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.2}
+.stats{flex:1;display:grid;grid-template-columns:1.2fr 1.5fr .75fr .75fr;min-width:0}
+.stat{all:unset;cursor:pointer;display:flex;flex-direction:column;justify-content:center;min-width:0;padding:0 8px;border-left:1px solid rgba(230,205,134,.28)}
+.stat:first-child{border-left:0;padding-left:2px}
+.stat i{font-style:normal;font-size:10px;color:var(--brass-lt);white-space:nowrap;letter-spacing:.08em}
+.stat b{font-family:var(--display);font-weight:900;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap;line-height:1.25}
 .stat em{font-style:normal;font-size:10px;margin-left:3px;font-family:var(--body);font-weight:700}
-.stat .up{color:#6FD39B} .stat .dn{color:#FF8A75}
-/* coach */
-#coach{position:absolute;z-index:15;left:8px;right:8px;top:calc(58px + var(--st));background:#FFF7DC;border:1px solid #E3C766;border-radius:14px;padding:9px 12px;box-shadow:0 8px 22px rgba(29,37,48,.18)}
-#coT{font-weight:700;font-size:13px;color:#7A4E00} #coD{font-size:12.5px;margin:2px 0 7px}
-#coach .act{display:flex;gap:6px} #coach button{padding:6px 12px;font-size:13px;border-radius:999px}
-/* zoom */
-.zoom{position:absolute;z-index:10;right:max(8px,env(safe-area-inset-right,0px));bottom:calc(var(--dock) + var(--sb) + 26px);display:flex;flex-direction:column;gap:6px}
-.zoom button{width:40px;height:40px;padding:0;font-size:18px;border-radius:12px;box-shadow:0 4px 14px rgba(29,37,48,.2)}
-/* dock */
+.stat .up{color:#7FDCA6} .stat .dn{color:#FF9A85}
+.stat:focus-visible{outline:2px solid var(--brass-lt);outline-offset:-2px;border-radius:4px}
+#demoTag{all:unset;cursor:pointer;display:block;width:100%;box-sizing:border-box;background:var(--green2);color:var(--brass-lt);font-size:10.5px;line-height:18px;padding:0 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+/* ── tutorial note ── */
+#coach{position:absolute;z-index:15;left:8px;right:8px;top:calc(var(--hud) + var(--st) + 8px);background:var(--panel);border:1.5px solid var(--brass);border-radius:10px;padding:9px 12px 10px;box-shadow:0 10px 26px rgba(6,24,21,.22)}
+#coT{font-family:var(--display);font-weight:900;font-size:14px;color:var(--green)} #coD{font-size:12.5px;margin:2px 0 8px}
+#coach .act{display:flex;gap:6px} #coach button{padding:6px 14px;font-size:13px}
+/* ── zoom ── */
+.zoom{position:absolute;z-index:10;right:max(8px,env(safe-area-inset-right,0px));bottom:calc(var(--dock) + var(--sb) + 26px);display:flex;flex-direction:column;border:1.5px solid var(--green);border-radius:10px;overflow:hidden;box-shadow:0 6px 16px rgba(6,24,21,.25)}
+.zoom button{width:40px;height:40px;padding:0;font-size:18px;border:0;border-radius:0;border-top:1px solid var(--line)} .zoom button:first-child{border-top:0}
+/* ── bottom dock ── */
 #dock{position:absolute;z-index:20;left:0;right:0;bottom:0;display:flex;align-items:stretch;gap:2px;height:calc(var(--dock) + var(--sb));
-  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + var(--sb)) max(8px,env(safe-area-inset-left,0px));background:var(--paper);border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(29,37,48,.14)}
-#dock .tab{flex:1;min-width:0;border:0;background:transparent;border-radius:10px;padding:2px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--dim);gap:1px}
-#dock .tab span{font-size:19px;line-height:1.1} #dock .tab.on{background:#EFE8D8;color:var(--ink);font-weight:700}
-#next{flex:none;margin-left:6px;padding:0 16px;border-radius:14px;background:var(--ink);border-color:var(--ink);color:#fff;font-family:var(--display);font-weight:900;font-size:16px;white-space:nowrap}
-/* sheets */
-.sheet{position:absolute;z-index:18;left:8px;right:8px;bottom:calc(var(--dock) + var(--sb) + 22px);max-height:min(60vh,calc(100% - var(--dock) - var(--sb) - var(--st) - 90px));
-  display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 14px 40px rgba(29,37,48,.3);overflow:hidden}
-.sh-h{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 8px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
-.sh-h b{font-family:var(--display);font-weight:900;font-size:17px}
-.x{border:0;background:transparent;font-size:18px;padding:6px 10px;border-radius:10px;color:inherit}
-.sh-b{padding:12px 14px 16px;overflow:auto;-webkit-overflow-scrolling:touch}
-.deed-h{position:relative;padding:11px 44px 10px 16px;color:#fff;background:var(--gold)}
-.deed-h .x{position:absolute;right:4px;top:4px;color:#fff}
-.deed-h .tag{font-size:11px;letter-spacing:.12em;opacity:.92}
-.deed-h .st{font-family:var(--display);font-weight:900;font-size:19px;line-height:1.25}
-.deed-h .sub{font-size:12px;opacity:.95}
-.deed-b{padding:10px 16px 14px;overflow:auto}
-.row{display:flex;justify-content:space-between;gap:12px;padding:2px 0;font-variant-numeric:tabular-nums}
+  padding:6px max(8px,env(safe-area-inset-right,0px)) calc(6px + var(--sb)) max(6px,env(safe-area-inset-left,0px));background:var(--panel);border-top:2px solid var(--green);box-shadow:0 -6px 20px rgba(6,24,21,.16)}
+#dock .tab{flex:1;min-width:0;border:0;background:transparent;border-radius:8px;padding:2px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;color:var(--dim);gap:2px}
+#dock .tab svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+#dock .tab.on{color:var(--green);font-weight:700;background:var(--paper);box-shadow:inset 0 -3px 0 var(--brass)}
+#next{flex:none;margin-left:8px;padding:0 18px;border-radius:8px;background:var(--seal);border-color:var(--seal);color:#fff;font-family:var(--kai);font-weight:700;font-size:19px;letter-spacing:.12em;white-space:nowrap;
+  box-shadow:inset 0 0 0 2px var(--seal),inset 0 0 0 3.5px rgba(255,255,255,.7),0 3px 0 #8C2114}
+#next:active{transform:translateY(2px);box-shadow:inset 0 0 0 2px var(--seal),inset 0 0 0 3.5px rgba(255,255,255,.7),0 1px 0 #8C2114}
+/* ── sheets（底部抽屜）── */
+.sheet{position:absolute;z-index:18;left:8px;right:8px;bottom:calc(var(--dock) + var(--sb) + 22px);max-height:min(60vh,calc(100% - var(--dock) - var(--sb) - var(--st) - var(--hud) - 34px));
+  display:flex;flex-direction:column;background:var(--panel);border:1.5px solid var(--green);border-radius:12px;box-shadow:0 16px 44px rgba(6,24,21,.38);overflow:hidden}
+.sh-h{display:flex;align-items:center;justify-content:space-between;padding:8px 6px 8px 16px;background:var(--green);color:#F3EFDD}
+.sh-h b{font-family:var(--display);font-weight:900;font-size:17px;letter-spacing:.06em}
+.x{border:0;background:transparent;font-size:17px;padding:6px 11px;border-radius:8px;color:inherit}
+.sh-b{padding:12px 14px 16px;overflow:auto;-webkit-overflow-scrolling:touch;background:var(--paper)}
+/* 地契 */
+#deed{--c:var(--brass)}
+.deed-h{position:relative;padding:12px 104px 10px 16px;background:var(--panel);border-top:7px solid var(--c);border-bottom:1px solid var(--line)}
+.deed-h .x{position:absolute;right:2px;top:2px;color:var(--dim)}
+.deed-h .tag{font-size:11.5px;color:var(--dim);letter-spacing:.06em}
+.deed-h .st{font-family:var(--display);font-weight:900;font-size:21px;line-height:1.25;color:var(--ink)}
+.deed-h .sub{font-size:12px;color:var(--dim)}
+.seal{position:absolute;right:42px;top:12px;width:50px;height:50px;display:grid;place-items:center;border:2.5px solid var(--c);border-radius:6px;color:var(--c);
+  font-family:var(--kai);font-weight:700;font-size:19px;line-height:1;letter-spacing:.04em;transform:rotate(-7deg);box-shadow:inset 0 0 0 2px var(--panel),inset 0 0 0 3px var(--c);opacity:.92}
+.deed-b{padding:12px 16px 14px;overflow:auto;background:var(--panel)}
+.deed-b>.row{border-bottom:1px dotted var(--line)}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));margin:0 0 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.figs div{padding:7px 10px 8px;border-left:1px solid var(--line);min-width:0} .figs div:first-child{border-left:0}
+.figs i{display:block;font-style:normal;font-size:11px;color:var(--dim)}
+.figs b{display:block;font-family:var(--display);font-weight:900;font-size:19px;line-height:1.25;font-variant-numeric:tabular-nums;white-space:nowrap}
+.figs small{display:block;font-size:10px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row{display:flex;justify-content:space-between;gap:12px;line-height:28px;font-variant-numeric:tabular-nums}
 .row span{color:var(--dim)} .row b{font-weight:700;text-align:right}
-.note{margin-top:6px;font-size:12.5px;color:var(--dim)}
-.status{margin:6px 0;padding:8px 10px;border-radius:10px;background:#F4EFE3;font-size:13px}
-.act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap} .act button{flex:1 1 auto}
-.box{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:0 0 10px;background:var(--paper)}
+.note{margin-top:6px;font-size:12.5px;line-height:1.6;color:var(--dim);background:var(--panel)}
+.status{margin:6px 0;padding:8px 10px;border-left:4px solid var(--brass);background:#F6EFD6;font-size:13px;border-radius:0 6px 6px 0}
+.status.ok{border-color:var(--up);background:#DFF0E4}
+.act{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap} .act button{flex:1 1 auto}
+/* 賬簿方格 */
+.box{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0 0 10px;background:var(--panel)}
+.box .row{border-top:1px dotted var(--line)} .box .row:first-child,.box .mh+.row{border-top:0}
 .box p{margin:6px 0 0;font-size:12.5px}
 .mh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px} .mh b{font-family:var(--display);font-size:16px}
-.meter{position:relative;height:10px;border-radius:999px;background:#E6E0D2;overflow:hidden}
-.meter i{position:absolute;left:0;top:0;bottom:0;border-radius:999px} .meter u{position:absolute;top:0;bottom:0;width:2px;background:rgba(29,37,48,.35)}
-.item{display:grid;grid-template-columns:1fr auto;gap:2px 8px;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border-radius:14px}
+.meter{position:relative;height:10px;border-radius:2px;background:#DCE2D0;overflow:hidden}
+.meter i{position:absolute;left:0;top:0;bottom:0} .meter u{position:absolute;top:0;bottom:0;width:2px;background:rgba(15,59,51,.45)}
+.item{display:grid;grid-template-columns:1fr auto;gap:2px 8px;width:100%;text-align:left;margin:0 0 8px;padding:10px 12px;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:8px;color:var(--ink)}
 .item small{grid-column:1/3;color:var(--dim);font-size:12px}
-.chip{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#EFE8D8;white-space:nowrap;align-self:center}
-.chip.c-applied,.chip.c-cond{background:#FFE9A8} .chip.c-approved{background:#CDEBD8} .chip.c-building{background:#F8CFCB} .chip.c-done{background:#8E1F18;color:#fff}
-h3{font-family:var(--display);font-weight:900;font-size:15px;margin:14px 0 6px}
+.chip{font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#E2E8D6;white-space:nowrap;align-self:center;color:var(--green)}
+.chip.c-applied,.chip.c-cond{background:#F4E3A6;color:#5E4300} .chip.c-approved{background:#CDEBD8} .chip.c-building{background:#F6CFC8;color:#7A1A10} .chip.c-done{background:#8E1F18;color:#fff}
+h3{font-family:var(--display);font-weight:900;font-size:15px;margin:16px 0 6px;padding-bottom:3px;border-bottom:2px solid var(--green);color:var(--green)}
 .lg{margin:0 0 7px;font-size:13px}
-.rcard{border:1px solid var(--line);border-left:6px solid var(--c);border-radius:14px;padding:10px 12px;margin-bottom:10px}
-.rh{display:flex;justify-content:space-between;gap:8px;align-items:baseline} .rh b{font-family:var(--display);font-size:17px} .rh span{font-size:11px;color:var(--dim)}
+.rcard{border:1px solid var(--line);border-top:5px solid var(--c);border-radius:8px;padding:10px 12px;margin-bottom:10px;background:var(--panel)}
+.rh{display:flex;justify-content:space-between;gap:8px;align-items:baseline} .rh b{font-family:var(--display);font-size:18px} .rh span{font-size:11px;color:var(--dim)}
 .rcard p{margin:4px 0 8px;font-size:12.5px}
 .attr{display:grid;grid-template-columns:38px 1fr 18px;gap:8px;align-items:center;font-size:12px;margin:2px 0}
-.attr div{height:7px;border-radius:99px;background:#E6E0D2;overflow:hidden} .attr i{display:block;height:100%;background:var(--c)} .attr b{text-align:right}
-.lnk{border:0;background:transparent;padding:6px 0 0;color:var(--me);font-weight:700}
-.rank{border:1px solid var(--line);border-radius:14px;overflow:hidden}
-.rk{display:grid;grid-template-columns:22px 1fr auto 46px;gap:8px;align-items:center;padding:7px 10px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
-.rk:first-child{border-top:0} .rk i{font-style:normal;font-family:var(--display);font-weight:900;color:var(--dim)}
+.attr div{height:7px;background:#DCE2D0;overflow:hidden} .attr i{display:block;height:100%;background:var(--c)} .attr b{text-align:right}
+.lnk{border:0;background:transparent;padding:6px 0 0;color:var(--seal);font-weight:700}
+.rank{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.rk{display:grid;grid-template-columns:22px 1fr auto 46px;gap:8px;align-items:center;padding:7px 10px;border-top:1px dotted var(--line);font-variant-numeric:tabular-nums}
+.rk:first-child{border-top:0} .rk i{font-style:normal;font-family:var(--display);font-weight:900;color:var(--brass)}
 .rk b small{display:block;font-weight:400;font-size:10.5px;color:var(--dim)} .rk em{font-style:normal;font-size:11px;text-align:right;color:var(--dim)}
 .rk em.up{color:var(--up)} .rk em.dn{color:var(--dn)}
-.rk.big{background:#F4F1EA;color:#5E6672} .rk.me{background:#FDECEA} .rk.me b{color:var(--me)}
-/* toast */
-#toast{position:absolute;z-index:60;left:50%;transform:translateX(-50%);top:calc(var(--st) + 60px);background:var(--ink);color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;box-shadow:0 8px 22px rgba(0,0,0,.3);max-width:88%;text-align:center;pointer-events:none}
-/* modal */
-#modal{position:absolute;inset:0;z-index:50;background:rgba(20,26,34,.62);display:flex;align-items:center;justify-content:center;
-  padding:calc(12px + var(--st)) 12px calc(12px + var(--sb))}
-.mcard{width:min(460px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--paper);border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.45);overflow:hidden}
-#mB{padding:18px 18px 6px;overflow:auto;-webkit-overflow-scrolling:touch}
-#mB h2{font-family:var(--display);font-weight:900;font-size:23px;line-height:1.25;margin:2px 0 10px}
+.rk.big{background:#E9EDDF;color:var(--dim)} .rk.me{background:#FBE7E3;box-shadow:inset 4px 0 0 var(--seal)} .rk.me b{color:var(--seal)}
+/* ── toast ── */
+#toast{position:absolute;z-index:60;left:50%;transform:translateX(-50%);top:calc(var(--st) + var(--hud) + 10px);background:var(--ink);color:#fff;padding:8px 16px;border-radius:6px;border-left:4px solid var(--brass);font-size:13px;box-shadow:0 8px 22px rgba(0,0,0,.3);max-width:88%;text-align:center;pointer-events:none}
+/* ── modal ── */
+#modal{position:absolute;inset:0;z-index:50;background:rgba(6,24,21,.66);display:flex;align-items:center;justify-content:center;padding:calc(12px + var(--st)) 12px calc(12px + var(--sb))}
+.mcard{width:min(460px,100%);max-height:100%;display:flex;flex-direction:column;background:var(--paper);border:1.5px solid var(--green);border-radius:12px;box-shadow:0 26px 70px rgba(0,0,0,.5);overflow:hidden}
+#mB{padding:0 18px 6px;overflow:auto;-webkit-overflow-scrolling:touch}
+.mk{position:sticky;top:0;z-index:1;margin:0 -18px 14px;padding:7px 18px;background:var(--green);color:var(--brass-lt);font-size:12px;letter-spacing:.12em;border-bottom:2px solid var(--brass)}
+#mB h2{font-family:var(--display);font-weight:900;font-size:24px;line-height:1.25;margin:0 0 10px;color:var(--ink)}
+#mB>h2:first-child{margin-top:18px}
 #mB p{margin:0 0 10px}
-.mk{font-size:11px;letter-spacing:.14em;color:var(--gold);font-weight:700}
-.mbtns{display:flex;flex-wrap:wrap;gap:8px;padding:10px 18px 16px}
+.mbtns{display:flex;flex-wrap:wrap;gap:8px;padding:10px 18px 16px;background:var(--paper)}
 .mbtns button{flex:1 1 40%;padding:12px 10px} .mbtns button small{display:block;font-weight:400;font-size:11px;opacity:.85}
 #modal.menu .mbtns button,#modal.event .mbtns button{flex:1 1 100%}
-#modal.story .mcard{background:#1D2530;color:#F4EFE3} #modal.story #mB p{font-size:16px;line-height:1.8}
-#modal.story .mbtns button:not(.primary){background:transparent;color:#F4EFE3;border-color:rgba(255,255,255,.25)}
-#modal.event .mcard{border-top:8px solid var(--ink)} #modal.event #mB p{font-size:15px;line-height:1.75}
-.fx{margin:4px 0 8px;padding:9px 12px;border-left:4px solid var(--gold);background:#F4EFE3;border-radius:0 10px 10px 0;font-size:13.5px;font-weight:500}
-#modal.report .mcard{width:min(560px,100%)} #modal.report h2{font-size:27px}
-.lead{font-size:15px}
-.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
-.kpis div{border:1px solid var(--line);border-radius:14px;padding:8px 10px;background:#fff}
-.kpis i{display:block;font-style:normal;font-size:11px;color:var(--dim)} .kpis b{font-family:var(--display);font-weight:900;font-size:19px}
-.chk{padding:7px 10px;border-radius:10px;margin-bottom:6px;font-size:13px;font-weight:500} .chk.y{background:#DDF1E5;color:#135C38} .chk.n{background:#FBE1DC;color:#8A2A1B}
-.quote{font-family:var(--display);font-size:16px;border-left:4px solid var(--ink);padding-left:12px}
+#modal.story .mcard{background:var(--green);color:#F3EFDD;border-color:var(--brass)} #modal.story .mk{background:transparent;border:0;margin-bottom:6px;padding-top:16px}
+#modal.story #mB h2{color:var(--brass-lt);font-size:28px} #modal.story #mB p{font-family:var(--kai);font-size:18px;line-height:1.85}
+#modal.story .mbtns{background:var(--green)} #modal.story .mbtns button:not(.primary){background:transparent;color:#F3EFDD;border-color:rgba(230,205,134,.5)}
+#modal.event #mB p{font-family:var(--kai);font-size:17px;line-height:1.8} #modal.event #mB h2{font-size:26px}
+.fx{margin:4px 0 8px;padding:9px 12px;border-left:4px solid var(--brass);background:var(--panel);border-radius:0 6px 6px 0;font-size:13.5px;font-weight:500}
+#modal.report .mcard{width:min(560px,100%)} #modal.report #mB h2{font-size:32px;letter-spacing:.04em}
+.lead{font-family:var(--kai);font-size:17px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);margin:10px 0;border:1px solid var(--line);border-radius:8px;background:var(--panel);overflow:hidden}
+.kpis div{padding:8px 10px;border-left:1px solid var(--line)} .kpis div:first-child{border-left:0}
+.kpis i{display:block;font-style:normal;font-size:11px;color:var(--dim)} .kpis b{font-family:var(--display);font-weight:900;font-size:20px;white-space:nowrap}
+.chk{padding:7px 10px;border-radius:6px;margin-bottom:6px;font-size:13px;font-weight:500} .chk.y{background:#DDF1E5;color:#135C38} .chk.n{background:#FBE1DC;color:#8A2A1B}
+.quote{font-family:var(--kai);font-size:18px;border-left:4px solid var(--green);padding-left:12px}
 .opts,.plans{display:grid;gap:8px;margin:8px 0}
-.opt{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;border-radius:14px;padding:10px 12px}
+.opt{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;border:1px solid var(--line);border-radius:8px;padding:10px 12px;color:var(--ink)}
+.opt>b{font-family:var(--display);font-size:16px}
 .opt small{grid-column:1/3;font-size:12px;color:var(--dim)} .opt small b{color:var(--ink)}
-.pill{font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;background:#EFE8D8;white-space:nowrap;align-self:center}
-.opt.on,.plan.on{border:2px solid var(--me);background:#FFF5F4;padding:9px 11px}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;background:#E2E8D6;white-space:nowrap;align-self:center;color:var(--green)}
+.opt.on,.plan.on{border:2px solid var(--seal);background:#FFF6F3;padding:9px 11px}
 .plans{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
-.plan{text-align:left;border-radius:12px;padding:8px 10px} .plan small{display:block;font-size:11px;color:var(--dim);font-weight:400}
+.plan{text-align:left;border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink)} .plan small{display:block;font-size:11px;color:var(--dim);font-weight:400}
 .lgds{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;margin-bottom:10px} .lgd{display:flex;align-items:center;gap:8px;font-size:13px}
-.lgd i{width:18px;height:18px;border-radius:5px;flex:none;border:1px solid rgba(0,0,0,.12)}
-/* map editor (scripts/editor.js) inside this shell */
+.lgd i{width:18px;height:18px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.14)}
+/* ── map editor (scripts/editor.js) inside this shell ── */
 body #edBtn{display:none}
 body.editing #edBtn{display:block;top:auto;right:12px;bottom:calc(16px + var(--sb));z-index:45}
 body.editing #hud,body.editing #dock,body.editing #coach,body.editing .sheet,body.editing .zoom{display:none!important}
 body #attrib{right:auto;left:8px;bottom:calc(var(--dock) + var(--sb) + 4px);font-size:9px;max-width:calc(100% - 16px);z-index:5}
 body.mo #attrib,body.editing #attrib{display:none}
-/* desktop */
+/* ── desktop ── */
 @media (min-width:900px){
-  :root{--dock:66px}
-  #hud{left:16px;right:auto;top:14px;border-radius:16px;padding:8px 10px;gap:10px;width:560px}
-  #coach{left:16px;right:auto;width:380px;top:84px}
-  .sheet{left:16px;right:auto;width:400px;bottom:calc(var(--dock) + 28px);max-height:calc(100% - var(--dock) - 220px)}
-  #dock{left:16px;right:auto;bottom:14px;width:560px;border:1px solid var(--line);border-radius:18px;height:var(--dock)}
-  #dock .tab{flex-direction:row;gap:6px;font-size:13px} #dock .tab span{font-size:17px}
-  .zoom{right:20px;bottom:36px} #toast{top:86px}
+  :root{--dock:68px}
+  #hud{left:16px;right:auto;top:14px;width:520px;border:2px solid var(--brass);border-radius:12px;overflow:hidden;padding-top:0}
+  #coach{left:16px;right:auto;width:400px;top:112px}
+  .sheet{left:16px;right:auto;width:420px;bottom:calc(var(--dock) + 28px);max-height:calc(100% - var(--dock) - 250px)}
+  #dock{left:16px;right:auto;bottom:14px;width:520px;border:2px solid var(--green);border-radius:12px;height:var(--dock)}
+  #dock .tab{flex-direction:row;gap:6px;font-size:13px} #dock .tab svg{width:20px;height:20px}
+  .zoom{right:20px;bottom:36px} #toast{top:116px}
   body #attrib{left:auto;right:76px;bottom:8px;max-width:none;font-size:10px}
-  .lot:hover{stroke:#1D2530;stroke-width:2.4} .blk:hover{stroke:#6E6757;stroke-width:3}
+  .lot:hover{stroke:#13231F;stroke-width:2.4} .blk:hover{stroke:#6E6757;stroke-width:3}
 }
-@media (max-width:360px){.stat b{font-size:13.5px}.when b{font-size:12.5px}#next{padding:0 11px;font-size:15px}}
-@media (prefers-reduced-motion:no-preference){.lot,.blk{transition:fill .25s}}
+@media (max-width:360px){.stat b{font-size:15px}.stat{padding:0 5px}#next{padding:0 12px;font-size:17px}.cal{width:40px}}
+@media (prefers-reduced-motion:no-preference){
+  .lot,.blk{transition:fill .25s}
+  .sheet{animation:up .18s ease-out} .mcard{animation:pop .2s ease-out} .seal{animation:stamp .28s cubic-bezier(.2,1.6,.4,1)}
+  @keyframes up{from{transform:translateY(16px);opacity:0}}
+  @keyframes pop{from{transform:scale(.96);opacity:0}}
+  @keyframes stamp{from{transform:rotate(-7deg) scale(1.7);opacity:0}}
+}
 </style>
 <div id="app">
   <svg id="map" role="img" aria-label="元朗市及周邊農地地圖：縮細睇分區，放大逐塊地買賣"></svg>
   <header id="hud">
-    <button id="menuBtn" aria-label="選單">☰</button>
-    <div class="when"><b id="hM"></b><button id="demoTag">試玩版數值 ⓘ</button><span id="lod"></span></div>
-    <div class="stats">
-      <button class="stat" data-tab="bank"><i>現金（億）</i><b id="hCash"></b></button>
-      <button class="stat" data-tab="proj"><i>身家（億）</i><b><span id="hWorth"></span><em id="hDelta"></em></b></button>
-      <button class="stat" data-tab="rel"><i>民意</i><b id="hOp"></b></button>
-      <button class="stat" data-tab="rel"><i>鄉紳</i><b id="hGen"></b></button>
+    <div class="hud-r">
+      <button id="menuBtn" aria-label="選單">☰</button>
+      <div class="cal" aria-label="遊戲月份"><u>元朗</u><b id="hM"></b><i id="hMt"></i></div>
+      <span id="lod"></span>
+      <div class="stats">
+        <button class="stat" data-tab="bank"><i>現金（億）</i><b id="hCash"></b></button>
+        <button class="stat" data-tab="proj"><i>身家（億）</i><b><span id="hWorth"></span><em id="hDelta"></em></b></button>
+        <button class="stat" data-tab="rel"><i>民意</i><b id="hOp"></b></button>
+        <button class="stat" data-tab="rel"><i>鄉紳</i><b id="hGen"></b></button>
+      </div>
     </div>
+    <button id="demoTag"></button>
   </header>
   <div id="coach" hidden><div id="coT"></div><div id="coD"></div><div class="act"><button class="primary" id="coGo">帶我去</button><button id="coSkip">跳過教學</button></div></div>
   <div class="zoom"><button id="zin" aria-label="放大">＋</button><button id="zout" aria-label="縮小">－</button><button id="fit" aria-label="睇全區" style="font-size:12px">全區</button></div>
   <section class="sheet" id="deed" hidden aria-live="polite">
-    <div class="deed-h" id="dh"><div class="tag" id="dTag"></div><div class="st" id="dSt"></div><div class="sub" id="dSub"></div><button class="x" id="dX" aria-label="收起">✕</button></div>
+    <div class="deed-h" id="dh"><div class="tag" id="dTag"></div><div class="st" id="dSt"></div><div class="sub" id="dSub"></div><div class="seal" id="dSeal" aria-hidden="true"></div><button class="x" id="dX" aria-label="收起">✕</button></div>
     <div class="deed-b" id="dBody"></div>
   </section>
   <section class="sheet" id="sheet" hidden>
@@ -195,12 +236,12 @@ body.mo #attrib,body.editing #attrib{display:none}
     <div class="sh-b" id="shB"></div>
   </section>
   <nav id="dock" aria-label="主選單">
-    <button class="tab" data-tab="proj"><span>🏗</span>項目</button>
-    <button class="tab" data-tab="riv"><span>⚔️</span>對手</button>
-    <button class="tab" data-tab="rel"><span>🤝</span>關係</button>
-    <button class="tab" data-tab="bank"><span>🏦</span>銀行</button>
-    <button class="tab" data-tab="log"><span>📜</span>記錄</button>
-    <button id="next">下個月 ›</button>
+    <button class="tab" data-tab="proj"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V8l6-3v15M10 20V10h8v10M3 20h18M13 13.5h2M13 16.5h2M6.5 11h1M6.5 14h1M6.5 17h1"/></svg>項目</button>
+    <button class="tab" data-tab="riv"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4l10.5 10.5M4 4h3.2M4 4v3.2M19 4L8.5 14.5M20 4h-3.2M20 4v3.2M7.5 16.5L4.5 19.5M16.5 16.5l3 3M6 13.5l4.5 4.5M18 13.5l-4.5 4.5"/></svg>對手</button>
+    <button class="tab" data-tab="rel"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8.5" cy="8.5" r="3"/><circle cx="16.5" cy="9.5" r="2.5"/><path d="M2.5 19.5c.5-3.3 2.9-5.5 6-5.5s5.5 2.2 6 5.5M14.5 14.3c.6-.2 1.3-.3 2-.3 2.6 0 4.6 1.800 5 4.500"/></svg>關係</button>
+    <button class="tab" data-tab="bank"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.500l9-5.500 9 5.500H3zM5.500 9.500v7.500M10 9.500v7.500M14 9.500v7.500M18.500 9.500v7.500M4 17h16M3 20h18"/></svg>銀行</button>
+    <button class="tab" data-tab="log"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM15 3v4h4M9 11h7M9 14h7M9 17h4"/></svg>記錄</button>
+    <button id="next">下個月</button>
   </nav>
   <div id="toast" hidden role="status"></div>
   <div id="modal" hidden><div class="mcard" role="dialog" aria-modal="true"><div id="mB"></div><div class="mbtns" id="mBtns"></div></div></div>
@@ -349,6 +390,7 @@ CO.small.forEach((c,i)=>WHO['c'+i]={n:c.name,c:'#3F8F8A',small:1,co:c});
 const rnd=()=>Math.random(),pick=a=>a[Math.floor(rnd()*a.length)],clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const fmt=v=>{const a=Math.abs(v);if(a<.005)return'0 億';return(a>=100?Math.round(v).toLocaleString('en'):a>=10?(Math.round(v*10)/10).toFixed(1):(Math.round(v*100)/100).toFixed(2).replace(/0$/,''))+' 億'};
+const fmtRent=v=>v<.995?Math.round(v*1e4).toLocaleString('en')+' 萬':fmt(v);
 const m2=v=>Math.round(v).toLocaleString('en')+' 平方米';
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 // 銀行顯示名：地圖數據保留原名，遊戲畫面用設計文件嘅虛構名
@@ -385,9 +427,10 @@ const premium=(st,u)=>siteBase(st)*(USES[u||st.use].land-1)*.5*(st.hag||1);
 const buildCost=(st,u)=>siteBase(st)*USES[u||st.use].build;
 const kOf=(st,plan,cond)=>(st.lots.length>=3?1.1:1)*(plan==='fac'?.93:plan==='gov'?.95:1)*(cond?.92:1);
 const opRent=()=>S.op>70?1.1:S.op<30?.9:1;
-function rentOf(l){const o=S.own[l.id];if(!o||o==='sold')return 0;const st=siteOf(l);let r;
-  if(st&&st.st==='done')r=val(l)*USES[st.use].yield;else if(st&&st.st==='building')r=0;else r=base(l)*(l.f?.002:.008);
-  return r*opRent()*S.rentTmp}
+// 預計月租：呢塊地照而家狀態每月收到幾多（未有業主嘅地＝買入後嘅租金）
+function rentEst(l){const st=siteOf(l);if(st&&st.st==='done')return val(l)*USES[st.use].yield*opRent();if(st&&st.st==='building')return 0;return base(l)*(l.f?.002:.008)*opRent()}
+function rentOf(l){const o=S.own[l.id];return!o||o==='sold'?0:rentEst(l)*S.rentTmp}
+const rentDone=(st,u,k)=>siteBase(st)*USES[u||st.use].done*(k||st.k||1)*USES[u||st.use].yield*opRent();
 const debtAll=()=>S.debt.bank+S.debt.fin;
 function worth(who){const v=sum(lotsOf(who),val);
   if(who==='me')return S.cash-debtAll()+v;if(who==='yc')return S.R.yc.cash+v;if(who==='kw')return S.R.kw.cash-S.R.kw.debt+v;return v}
@@ -434,7 +477,14 @@ function paintLot(id){const e=lotEl[id],l=M.lots[id];if(e&&l)e.setAttribute('cla
 // 縮到最細（分區）時地塊唔會畫出嚟：另外畫一層「有業主嘅地」，等玩家喺全區圖都見到自己同對手嘅地
 const gOwn=el('g',{'pointer-events':'none'});gBlk.after(gOwn);
 function drawOwn(){gOwn.innerHTML='';if(!S)return;BUY.forEach(l=>{if(S.own[l.id])el('polygon',{points:pts(l.g),class:lotClass(l),'vector-effect':'non-scaling-stroke'},gOwn)})}
-const _applyOwn=apply;apply=function(){_applyOwn();gOwn.style.display=LOD===1?'':'none'};
+// 地圖上嘅租金標籤：你嘅地放大到見到地塊就顯示；其他可買地放到最大先顯示（買入後預計月租）
+const gRent=el('g',{'pointer-events':'none'});svg.insertBefore(gRent,gNM);let rentLv=0;
+function drawRent(){rentLv=LOD;if(!S||LOD<2){gRent.innerHTML='';return}let h='';
+  BUY.forEach(l=>{const o=S.own[l.id];if(o==='sold'||(o!=='me'&&LOD<3))return;const st=siteOf(l);
+    const t=st&&st.st==='building'?(o==='me'?`施工 ${st.left} 個月`:'施工中'):'租 '+fmtRent(rentEst(l)).replace(' ','');
+    h+=`<text x="${l.c[0]}" y="${l.c[1]}"${l.n&&LOD===3?' dy="1.3em"':''} class="rt${o==='me'?' me':o?' ot':''}">${t}</text>`});gRent.innerHTML=h}
+const _applyOwn=apply;apply=function(){_applyOwn();gOwn.style.display=LOD===1?'':'none';
+  gRent.setAttribute('font-size',9.5*vb.w/Math.max(1,svg.getBoundingClientRect().width));if(LOD!==rentLv)drawRent()};
 function paintBlock(bid){const b=M.blocks[bid];if(!b||b.k!=='buy'||!blkEl[bid])return;const sh={},tot=b.lots.reduce((s,i)=>s+M.lots[i].m2,0)||1;
   b.lots.forEach(i=>{const l=M.lots[i],o=S.own[i]||(l.k==='dev'?'dev':'');if(o&&o!=='sold')sh[o]=(sh[o]||0)+l.m2/tot});
   let fill=baseFill(b);const top=Object.entries(sh).sort((a,c)=>c[1]-a[1])[0];
@@ -446,7 +496,7 @@ function paintLots(ls){const bs=new Set();ls.forEach(l=>{paintLot(l.id);bs.add(l
   el('rect',{width:26,height:26,fill:a},p);el('rect',{width:10,height:26,fill:'#fff',opacity:.6},p)});
 // ── 介面小工具 ──
 let toastT=0;function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>e.hidden=true,2600)}
-function modal(o){$('mB').innerHTML=(o.k?`<div class="mk">${o.k}</div>`:'')+(o.t?`<h2>${o.t}</h2>`:'')+(o.h||'');const B=$('mBtns');B.innerHTML='';
+function modal(o){$('mB').innerHTML=(o.k?`<div class="mk">${o.k.replace(/ · /g,'　')}</div>`:'')+(o.t?`<h2>${o.t}</h2>`:'')+(o.h||'');const B=$('mBtns');B.innerHTML='';
   (o.b||[{l:'繼續',c:'primary'}]).forEach(b=>{const e=document.createElement('button');e.innerHTML=b.l;if(b.c)e.className=b.c;if(b.dis)e.disabled=true;
     e.onclick=()=>{if(!b.keep)closeModal();b.f&&b.f()};B.appendChild(e)});
   $('modal').className=o.cls||'';$('modal').hidden=false;document.body.classList.add('mo');$('mB').scrollTop=0;if(o.after)o.after()}
@@ -475,7 +525,7 @@ function sellRaw(l){const st=siteOf(l),ls=st?siteLots(st):[l];if(st&&st.st)retur
 function negotiate(k){const c=WHO[k].co,ls=lotsOf(k),V=sum(ls,val),ng=S.nego[k]||0;
   const offers=[[.95,30,'壓價'],[1.1,70,'市價加一成'],[1.3,100,'爽快價']];
   modal({k:'集團資料卡',t:c.name,h:`<p class="dim">${esc(c.role||'小型業主')}。唔擴張、唔競投、唔記仇，淨係收租。</p>
-    <div class="box">${row('持有地塊',ls.length+' 塊')}${row('總面積',m2(sum(ls,l=>l.m2)))}${row('物業市值',fmt(V))}${row('每月租金',fmt(sum(ls,rentOf)))}</div>
+    <div class="box">${row('持有地塊',ls.length+' 塊')}${row('總面積',m2(sum(ls,l=>l.m2)))}${row('物業市值',fmt(V))}${row('每月租金',fmtRent(sum(ls,rentEst)))}</div>
     <p>提出整間收購，一次過接收全部地塊。${ng?'<br><b>今個月已經傾過一次，對方唔會再聽低過上次嘅價。</b>':''}</p>`,
     b:offers.map(([x,p,n],i)=>({l:`${n} ${fmt(V*x)}<small>成功機會 ${p}%</small>`,c:i===1?'primary':'',dis:S.cash<V*x||i<ng,f:()=>{
       if(rnd()*100<p){S.cash-=V*x;ls.forEach(l=>take(l,k));paintLots(ls);
@@ -511,7 +561,8 @@ function applyModal(l){const st=ensureSite(l),farm=!!l.f,uses=Object.keys(USES).
         return`<button class="opt${u===use?' on':''}" data-u="${u}"><b>${farm?'農地':'舊樓'} → ${U.n}</b><span class="pill">${b?'未符合':'機會約 '+chance(st,u,plan)+'%'}</span>
         <small>${b?'✕ '+b:U.need}</small>
         <small>補地價 ${fmt(pr)}　建築費 ${fmt(bc)}　工期 ${U.months} 個月</small>
-        <small>完成後估值 <b>${fmt(dv)}</b>　預計賺 <b>${fmt(dv-V-pr-bc)}</b></small></button>`}).join('')}</div>
+        <small>完成後估值 <b>${fmt(dv)}</b>　預計賺 <b>${fmt(dv-V-pr-bc)}</b></small>
+        <small>落成後預計月租 <b>${fmtRent(rentDone(st,u,k))}</b>（而家 ${fmtRent(sum(siteLots(st),rentEst))}）</small></button>`}).join('')}</div>
       <div class="plans">${Object.keys(PLANS).filter(p=>p!=='gov'||use!=='village').map(p=>`<button class="plan${p===plan?' on':''}" data-p="${p}"><b>${PLANS[p].n}</b><small>${PLANS[p].d}</small></button>`).join('')}</div>
       ${st.retry?`<p class="dim">之前被否決過 ${st.retry} 次；修改方案再申請，機會每次 +8。</p>`:''}`,
       b:[{l:`遞交申請（費用 ${fmt(APP_FEE)}）`,c:'primary',dis:!!blk||S.cash<APP_FEE,f:()=>submit(st,use,plan)},{l:'取消'}],
@@ -543,41 +594,44 @@ function sellDone(st){const p=siteVal(st)*saleF(),ls=siteLots(st);
 // ── 地塊資料卡 ──
 function select(id){SEL=id;closeSheet();gSel.setAttribute('points',pts(M.lots[id].g));$('deed').hidden=false;renderCard()}
 function closeCard(){SEL=null;gSel.setAttribute('points','');$('deed').hidden=true}
-function renderCard(){if(SEL===null)return;const l=M.lots[SEL];if(!l){closeCard();return}const dh=$('dh');let body='',btn=[];
+function cardHead(c,tag,title,sub,seal){$('deed').style.setProperty('--c',c);$('dTag').textContent=tag;$('dSt').textContent=title;$('dSub').textContent=sub||'';$('dSeal').textContent=seal}
+const figs=a=>`<div class="figs">${a.map(([k,v,n])=>`<div><i>${k}</i><b>${v}</b>${n?`<small>${n}</small>`:''}</div>`).join('')}</div>`;
+function renderCard(){if(SEL===null)return;const l=M.lots[SEL];if(!l){closeCard();return}let body='',btn=[];
   const B=(label,fn,cls,dis)=>{btn.push({label,fn,cls,dis})};
-  if(l.k==='buy'){const o=S.own[l.id],st=siteOf(l),U=st&&st.use?USES[st.use]:null,done=st&&st.st==='done';
-    const type=done?U.n:l.f?'農地':String(l.z||'').startsWith('V')?'鄉村屋地':'市區物業';
-    dh.style.background=o?WHO[o].c:l.f?'#7C8A2E':'#B78716';
-    $('dTag').textContent=l.a+' · '+type+(inZone(l)&&!done?' · 發展區':'');$('dSt').textContent=lotName(l);$('dSub').textContent=l.n&&l.s?l.s.join(' × '):'';
-    const merged=st&&st.lots.length>1;
-    body=row(merged?`地盤（${st.lots.length} 塊）`:'佔地',m2(merged?siteM2(st):l.m2))+row(merged?'地盤市值':'市值',fmt(merged?siteVal(st):val(l)))+
-      (o&&o!=='sold'?row('每月租金',fmt(merged?sum(siteLots(st),rentOf):rentOf(l))):'')+row('業主',o?WHO[o].n:'未有業主');
-    if(!o){const p=askPrice(l);body+=`<div class="note">${l.f?(S.gen>=60?'鄉紳關係好，收地平一成。':S.gen<35?'鄉紳關係差，村民坐地起價，貴一成半。':'')+(inZone(l)?'發展區內農地，可以申請改做住宅。':'農地可以同鄉紳合作起村屋。'):'現成物業，買入即收租；合併相鄰地塊可以重建。'}</div>`;
-      B(`買入 ${fmt(p)}`,()=>buy(l),'primary',S.cash<p)}
-    else if(o==='me'){
+  if(l.k==='buy'){const o=S.own[l.id],st=siteOf(l),U=st&&st.use?USES[st.use]:null,done=st&&st.st==='done',mine=o==='me';
+    const type=done?U.n:l.f?'農地':String(l.z||'').startsWith('V')?'鄉村屋地':'市區物業',merged=st&&st.lots.length>1,ls=merged?siteLots(st):[l];
+    cardHead(o?WHO[o].c:l.f?'#6E7F1F':'#B8913A',l.a+'　'+type+(inZone(l)&&!done?'　發展區':''),lotName(l),l.n&&l.n!=='空地'&&l.s?l.s.join(' × '):'',mine?'已購':o==='sold'?'售出':o?WHO[o].n.slice(0,2):'待售');
+    const V=sum(ls,val),R=sum(ls,rentEst),ask=!mine&&o!=='sold'?askPrice(l):null,cost=mine||merged?V:ask||V,rl=mine?'每月租金':'預計月租';
+    const bld=st&&st.st==='building';
+    body=figs([[merged?`地盤市值`:'市值',fmt(V)],o==='sold'?[rl,'—']:bld?[rl,'0','施工期間唔收租']:[rl,fmtRent(merged||mine?R:rentEst(l)),mine?'每月入賬':'買入後每月收'],
+      o==='sold'||bld?['年回報','—']:['年回報',((merged||mine?R:rentEst(l))*12/(cost||1)*100).toFixed(1)+'%',mine?'以市值計':'以買入價計']])+
+      row(merged?`地盤（${st.lots.length} 塊）`:'佔地',m2(sum(ls,x=>x.m2)))+row('業主',o?WHO[o].n:'未有業主');
+    if(!o){body+=`<div class="note">${l.f?(S.gen>=60?'鄉紳關係好，收地平一成。':S.gen<35?'鄉紳關係差，村民坐地起價，貴一成半。':'')+(inZone(l)?'發展區內農地，可以申請改做住宅。':'農地租金好低，要同鄉紳合作起村屋先賺到錢。'):'現成物業，買入即收租；合併相鄰地塊可以重建。'}</div>`;
+      B(`買入 ${fmt(ask)}`,()=>buy(l),'primary',S.cash<ask)}
+    else if(mine){
       if(!st||!st.st){const set=mergeSet(l),cur=st?st.lots.length:1;
         if(st&&st.retry)body+=`<div class="note">申請被否決過 ${st.retry} 次，可以修改方案再申請。</div>`;
         if(set.length>cur){const fee=sum(set,val)*.01;B(`合併相鄰 ${set.length} 塊（費用 ${fmt(fee)}）`,()=>doMerge(l),'primary',S.cash<fee)}
-        B('遞交改變用途申請',()=>applyModal(l),set.length>cur?'':'primary');B(`放售 ${fmt(sum(st?siteLots(st):[l],base)*.9)}`,()=>sellRaw(l))}
-      else if(st.st==='applied')body+=`<div class="status">📨 ${CFG.TPB}審批中：改做${U.n}（${PLANS[st.plan].n}），機會約 ${chance(st,st.use,st.plan)}%。撳「下個月」就有結果。</div>`;
-      else if(st.st==='cond'){body+=`<div class="status">◐ 有條件批准：要加建公共設施同降低高度，完成價值 −8%。</div>`;
+        B('遞交改變用途申請',()=>applyModal(l),set.length>cur?'':'primary');B(`放售 ${fmt(sum(ls,base)*.9)}`,()=>sellRaw(l))}
+      else if(st.st==='applied')body+=`<div class="status">${CFG.TPB}審批中：改做${U.n}（${PLANS[st.plan].n}），機會約 ${chance(st,st.use,st.plan)}%。撳「下個月」就有結果。</div>`+row('落成後預計月租',fmtRent(rentDone(st,st.use,kOf(st,st.plan))));
+      else if(st.st==='cond'){body+=`<div class="status">有條件批准：要加建公共設施同降低高度，完成價值 −8%。</div>`;
         B('接受條件',()=>{approve(st,1);log(`你接受咗${CFG.TPB}嘅附帶條件。`);paintLots(siteLots(st));refresh()},'primary');B('放棄申請',()=>{st.st=null;paintLots(siteLots(st));refresh()})}
       else if(st.st==='approved'){const pr=premium(st),bc=buildCost(st),dv=siteBase(st)*U.done*st.k,wait=st.wait===S.m;
-        body+=`<div class="status">✔ 已獲批改做${U.n}。${wait?CFG.LANDS+'仲「研究緊」，下個月先動得工。':''}</div>`+row('補地價'+(st.hag?'（已議價）':''),fmt(pr))+row('建築費',fmt(bc))+row('工期',U.months+' 個月')+row('完成後估值',fmt(dv));
+        body+=`<div class="status ok">已獲批改做${U.n}。${wait?CFG.LANDS+'仲「研究緊」，下個月先動得工。':''}</div>`+row('補地價'+(st.hag?'（已議價）':''),fmt(pr))+row('建築費',fmt(bc))+row('工期',U.months+' 個月')+row('完成後估值',fmt(dv))+row('落成後預計月租',fmtRent(rentDone(st)));
         B(`動工（共 ${fmt(pr+bc)}）`,()=>startBuild(st),'primary',wait||S.cash<pr+bc);if(!st.hagged)B('同'+CFG.LANDS+'議價',()=>haggle(st))}
-      else if(st.st==='building')body+=`<div class="status">🏗 興建${U.n}中，仲有 ${st.left} 個月完工。工期內唔收租。</div>`+row('完成後估值',fmt(siteBase(st)*U.done*st.k));
-      else if(done){body+=`<div class="status">🏠 ${U.n}已落成，收租中。</div>`;B(`分拆出售 ${fmt(siteVal(st)*saleF())}`,()=>sellDone(st),'primary')}}
+      else if(bld)body+=`<div class="status">興建${U.n}中，仲有 ${st.left} 個月完工。</div>`+row('完成後估值',fmt(siteBase(st)*U.done*st.k))+row('落成後預計月租',fmtRent(rentDone(st)));
+      else if(done){body+=`<div class="status ok">${U.n}已落成，收租中。</div>`;B(`分拆出售 ${fmt(siteVal(st)*saleF())}`,()=>sellDone(st),'primary')}}
     else if(o==='sold')body+=`<div class="note">單位已經賣晒俾散戶，業主立案法團第一次開會就嘈咗三個鐘。</div>`;
-    else if(WHO[o].small){const p=askPrice(l);body+=`<div class="note">${WHO[o].n}：${esc(WHO[o].co.role||'小型業主')}。可以逐塊買（市價 ×1.2），或者整間收購。</div>`;
-      B('資料卡／整間收購',()=>negotiate(o),'primary');B(`淨係買呢塊 ${fmt(p)}`,()=>buy(l),'',S.cash<p)}
-    else{const p=askPrice(l),R=o==='yc'?R_MAIN:R_SPEC;
-      body+=`<div class="note">${R.name}：${esc(R.style||'')}。${st&&st.st?'呢度有工程進行緊，對方唔賣。':o==='kw'&&S.R.kw.distress>0?'對方資金緊張，肯蝕讓（市價八折）。':o==='yc'?'硬收購要俾市價 1.5 倍，而且會結怨。':'炒家開價：市價 1.3 倍。'}</div>`;
-      if(p!==null)B(`收購 ${fmt(p)}`,()=>buy(l),'primary',S.cash<p)}}
-  else if(l.k==='dev'){const c=CO.major.find(x=>x.name===l.dev);dh.style.background='#5B3F8C';$('dTag').textContent=l.a+' · 大地產商物業';$('dSt').textContent=lotName(l);$('dSub').textContent=l.dev||'';
-    body=row('佔地',m2(l.m2))+row('市值',fmt(l.p*S.idx))+`<div class="note">${c?esc(c.style)+'。弱點：'+esc(c.weakness)+'。':''}大集團嘅物業今章唔放售——你暫時未夠班同佢哋傾。</div>`}
-  else if(l.k==='bank'){dh.style.background='#1F7A66';$('dTag').textContent='銀行 · 非賣品';$('dSt').textContent=dn(l);$('dSub').textContent=(l.s||[]).join(' × ');
+    else if(WHO[o].small){body+=`<div class="note">${WHO[o].n}：${esc(WHO[o].co.role||'小型業主')}。可以逐塊買（市價 ×1.2），或者整間收購。</div>`;
+      B('資料卡／整間收購',()=>negotiate(o),'primary');B(`淨係買呢塊 ${fmt(ask)}`,()=>buy(l),'',S.cash<ask)}
+    else{const Rv=o==='yc'?R_MAIN:R_SPEC;
+      body+=`<div class="note">${Rv.name}：${esc(Rv.style||'')}。${st&&st.st?'呢度有工程進行緊，對方唔賣。':o==='kw'&&S.R.kw.distress>0?'對方資金緊張，肯蝕讓（市價八折）。':o==='yc'?'硬收購要俾市價 1.5 倍，而且會結怨。':'炒家開價：市價 1.3 倍。'}</div>`;
+      if(ask!==null)B(`收購 ${fmt(ask)}`,()=>buy(l),'primary',S.cash<ask)}}
+  else if(l.k==='dev'){const c=CO.major.find(x=>x.name===l.dev);cardHead('#5B3F8C',l.a+'　大地產商物業',lotName(l),l.dev||'','非賣');
+    body=figs([['市值',fmt(l.p*S.idx)],['佔地',Math.round(l.m2).toLocaleString('en'),'平方米']])+`<div class="note">${c?esc(c.style)+'。弱點：'+esc(c.weakness)+'。':''}大集團嘅物業今章唔放售，你暫時未夠班同佢哋傾。</div>`}
+  else if(l.k==='bank'){cardHead('#1F7A66','銀行　非賣品',dn(l),(l.s||[]).join(' × '),'銀行');
     body=`<div class="note">入去借錢、還錢。</div>`;B('入銀行',()=>{closeCard();openSheet('bank')},'primary')}
-  else{const K=KIND[l.k]||KIND.gov;dh.style.background=K.head||'#6B717C';$('dTag').textContent=K.tag+' · 非賣品';$('dSt').textContent=l.n||K.tag;$('dSub').textContent=(l.s||[]).join(' × ');
+  else{const K=KIND[l.k]||KIND.gov;cardHead(K.head||'#6B717C',K.tag+'　非賣品',l.n||K.tag,(l.s||[]).join(' × '),'非賣');
     body=row('佔地',m2(l.m2))+`<div class="note">${{park:'公眾休憩用地，唔可以買賣。',gov:'政府或公共機構用地，唔可以買賣。',rel:'宗教場所，唔可以買賣。',comm:'學校、醫院同社區設施，唔可以買賣。',mark:'地標唔放售。'}[l.k]||''}</div>`}
   $('dBody').innerHTML=body+'<div class="act"></div>';const A=$('dBody').querySelector('.act');
   btn.forEach(b=>{const e=document.createElement('button');e.textContent=b.label;if(b.cls)e.className=b.cls;e.disabled=!!b.dis;e.onclick=b.fn;A.appendChild(e)})}
@@ -590,10 +644,10 @@ function renderSheet(){if(!TAB)return;$('shT').textContent=TABS[TAB];const B=$('
   if(TAB==='proj'){const mine=lotsOf('me'),seen=new Set(),items=[];
     mine.forEach(l=>{const st=siteOf(l);if(st){if(seen.has(st.id))return;seen.add(st.id);items.push({l,st})}else items.push({l})});
     const w=worth('me');
-    h=`<div class="box">${row('現金',fmt(S.cash))}${row('物業市值',fmt(sum(mine,val)))}${row('貸款',fmt(debtAll()))}${row('身家',fmt(w))}${row('開局身家',fmt(S.start))}${row('解鎖第二章要',fmt(S.start*CFG.UNLOCK)+' 而且贏'+N.yc)}</div>`;
+    h=`<div class="box">${row('現金',fmt(S.cash))}${row('物業市值',fmt(sum(mine,val)))}${row('每月租金收入',fmtRent(sum(mine,rentEst)))}${row('貸款',fmt(debtAll()))}${row('身家',fmt(w))}${row('開局身家',fmt(S.start))}${row('解鎖第二章要',fmt(S.start*CFG.UNLOCK)+' 而且贏'+N.yc)}</div>`;
     h+=items.length?items.sort((a,b)=>(b.st&&b.st.st?1:0)-(a.st&&a.st.st?1:0)).map(({l,st})=>`<button class="item" data-go="${l.id}"><b>${esc(lotName(l))}${st&&st.lots.length>1?' 等 '+st.lots.length+' 塊':''}</b>
       <span class="chip ${st&&st.st?'c-'+st.st:''}">${st&&st.st?ST_LABEL[st.st]+(st.st==='building'?' · 仲有 '+st.left+' 個月':''):st&&st.lots.length>1?'已合併':l.f?'農地':'收租'}</span>
-      <small>${l.a} · ${st&&st.use&&st.st?USES[st.use].n+' · ':''}市值 ${fmt(st?siteVal(st):val(l))}</small></button>`).join(''):'<p class="dim">你乜都冇。大哥會好開心。</p>'}
+      <small>${l.a}　${st&&st.use&&st.st?USES[st.use].n+'　':''}市值 ${fmt(st?siteVal(st):val(l))}　月租 ${fmtRent(sum(st?siteLots(st):[l],rentEst))}</small></button>`).join(''):'<p class="dim">你乜都冇。大哥會好開心。</p>'}
   else if(TAB==='riv'){const bar=(k,v)=>`<div class="attr"><span>${k}</span><div><i style="width:${v*10}%"></i></div><b>${v}</b></div>`;
     const card=(k,R,extra)=>{const ls=lotsOf(k);return`<div class="rcard" style="--c:${WHO[k].c}"><div class="rh"><b>${R.name}</b><span>${esc(R.role||'')}</span></div>
       <p>${esc(R.style||'')}　<span class="dim">弱點：${esc(R.weakness||'')}</span></p>${bar('資金',R.cash)}${bar('進取',R.aggressive)}${bar('狡猾',R.cunning)}${bar('記仇',R.grudge)}
@@ -627,11 +681,11 @@ const ACTS={hall:{g:'op',n:'資助社區中心',c:3,d:12,x:()=>'社區中心剪�
 function doAct(k){const a=ACTS[k];if(S.did[k]||S.cash<a.c)return;S.cash-=a.c;S.stats.fees+=a.c;S.did[k]=1;if(a.g==='op')S.op=clamp(S.op+a.d,0,100);else S.gen=clamp(S.gen+a.d,0,100);
   const t=a.x();log(`${a.n}（${fmt(a.c)}）：${t}`);toast(`${a.g==='op'?'民意':'鄉紳關係'} +${a.d}`);refresh()}
 // ── HUD／教學 ──
-function hud(){const w=worth('me'),d=(w/S.start-1)*100;$('hM').textContent=S.over?'年結':`第 ${S.m} 月 / ${CFG.MONTHS}`;
+function hud(){const w=worth('me'),d=(w/S.start-1)*100;$('hM').textContent=S.over?'結':S.m;$('hMt').textContent=S.over?'年結':'/ '+CFG.MONTHS+' 月';
   $('hCash').textContent=fmt(S.cash).replace(' 億','');$('hWorth').textContent=fmt(w).replace(' 億','');
   $('hDelta').textContent=(d>=0?'▲':'▼')+Math.abs(d).toFixed(0)+'%';$('hDelta').className=d>=0?'up':'dn';
   $('hOp').textContent=Math.round(S.op);$('hOp').className=S.op<30?'dn':S.op>70?'up':'';$('hGen').textContent=Math.round(S.gen);$('hGen').className=S.gen<30?'dn':S.gen>=60?'up':'';
-  $('next').textContent=S.over?'睇年報':S.m>=CFG.MONTHS?'年結 ›':'下個月 ›'}
+  $('next').textContent=S.over?'睇年報':S.m>=CFG.MONTHS?'年結':'下個月'}
 const TUT=[
   {t:`收購${N.luk}`,d:`${N.luk}老闆想退休，手上有幾塊市中心地。撳佢嘅地 →「資料卡／整間收購」→ 揀個價。`,go:()=>focusLots(lotsOf('c0')),ok:()=>!lotsOf('c0').length},
   {t:'合併相鄰地塊',d:'撳你啱啱收購嘅地 →「合併相鄰地塊」。相連嘅地合埋先起得大，三塊或以上仲有地積比獎勵。',go:()=>focusLots(lotsOf('me').filter(l=>!l.f)),ok:()=>Object.values(S.sites).some(s=>s.owner==='me'&&s.lots.length>1)},
@@ -640,7 +694,7 @@ const TUT=[
 function coach(){const c=$('coach');if(S.over||S.tut>=TUT.length){c.hidden=true;return}
   while(S.tut<TUT.length&&TUT[S.tut].ok())S.tut++;if(S.tut>=TUT.length){c.hidden=true;toast('教學完成，之後靠你自己');return}
   const T=TUT[S.tut];c.hidden=false;$('coT').textContent=`教學 ${S.tut+1}/${TUT.length} · ${T.t}`;$('coD').textContent=T.d;$('coGo').hidden=!T.go;$('coGo').onclick=T.go}
-function refresh(){hud();renderCard();renderSheet();coach();save()}
+function refresh(){hud();renderCard();renderSheet();coach();drawRent();save()}
 // ── 月結 ──
 function finishSite(st,rep){st.st='done';const ls=siteLots(st),nm=lotName(ls[0]);
   if(st.owner==='me'){S.stats.done++;const t=`🏠 「${nm}」嘅${USES[st.use].n}落成，估值 ${fmt(siteVal(st))}。可以收租，或者分拆出售。`;rep.lines.push(t);log(t,1)}
@@ -688,7 +742,7 @@ function rivals(rep){const Y=S.R.yc,K=S.R.kw,mine=new Set(lotsOf('me').map(l=>l.
   rep.riv.forEach(t=>log(t))}
 function nextMonth(){if(S.over){annual();return}closeCard();closeSheet();const rep=settle();rivals(rep);S.m++;
   const net=rep.inc-rep.int;
-  const h=`<div class="box">${row('租金收入','+'+fmt(rep.inc))}${row('貸款利息','−'+fmt(rep.int))}${row('本月淨額',(net>=0?'+':'−')+fmt(Math.abs(net)))}${row('現金',fmt(S.cash))}</div>`+
+  const h=`<div class="box">${row('租金收入','+'+fmt(rep.inc))}${row('貸款利息',(rep.int>.005?'−':'')+fmt(rep.int))}${row('本月淨額',(net>=0?'+':'−')+fmt(Math.abs(net)))}${row('現金',fmt(S.cash))}</div>`+
     (rep.lines.length?'<h3>你嘅項目</h3>'+rep.lines.map(t=>`<p class="lg">${esc(t)}</p>`).join(''):'')+
     '<h3>對手動向</h3>'+(rep.riv.length?rep.riv.map(t=>`<p class="lg">${esc(t)}</p>`).join(''):'<p class="lg dim">今個月對手按兵不動。通常唔係好事。</p>');
   if(S.m>CFG.MONTHS){S.over=true;S.m=CFG.MONTHS;refresh();modal({k:`第 ${rep.m} 個月結算`,t:'十二個月到期',h,cls:'tall',b:[{l:'睇年報',c:'primary',f:annual}]});return}
@@ -770,6 +824,7 @@ fit=function(){const r=svg.getBoundingClientRect(),P=(M.play||[]).flat();let x0=
   const wide=r.width>=900,top=wide?20:70,bot=wide?20:90,uw=r.width-24,uh=Math.max(120,r.height-top-bot-24),u=Math.max((x1-x0)/uw,(y1-y0)/uh);
   vb.w=r.width*u;vb.h=r.height*u;vb.x=(x0+x1)/2-vb.w/2;vb.y=(y0+y1)/2-(top+(r.height-top-bot)/2)*u;apply()};
 // ── 啟動 ──
+$('demoTag').textContent=`試玩版數值　審批 ${CFG.APPROVE_MONTHS} 個月、村屋 ${USES.village.months} 個月、住宅 ${USES.res.months} 個月　ⓘ`;
 $('next').onclick=nextMonth;$('menuBtn').onclick=menu;$('demoTag').onclick=help;$('dX').onclick=closeCard;$('shX').onclick=closeSheet;
 $('coSkip').onclick=()=>{S.tut=TUT.length;refresh()};
 document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>TAB===b.dataset.tab&&b.closest('#dock')?closeSheet():openSheet(b.dataset.tab));
