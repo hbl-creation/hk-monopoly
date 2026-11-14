@@ -362,6 +362,30 @@ if any(s[0] == 'L' for s in E['erase']):
                     if kind == 'gb' and q.area > 15000:
                         rp = q.representative_point(); data['zlab'].append(['綠化地帶' if grp == 'GB' else '自然保育區', round(rp.x), round(rp.y)])
         print('zoning: plots tagged', sum(1 for l in data['lots'] if l.get('z')), '| green no-plot pieces', len(data['zfree']))
+    # names for plots that have none: nearest official village (village-type zone or within 180 m), else main street
+    gp = f'{ROOT}/data/{key}-geonames.json'
+    if os.path.exists(gp):
+        VIL = [(n, x, y) for t, n, x, y in json.load(open(gp))['g'] if t == 'Village']
+        GN_ALL = [(n, x, y) for t, n, x, y in json.load(open(gp))['g'] if t in ('Village', 'Area', 'Town')]
+        noname = [l for l in data['lots'] if l['k'] in ('buy', 'dev') and not l['n']]
+        noname.sort(key=lambda l: (round(l['c'][1] / 60), l['c'][0]))  # rows north->south, west->east
+        cnt = collections.Counter(); named = 0
+        for l in noname:
+            base = ''
+            if VIL:
+                n, x, y = min(VIL, key=lambda v: (v[1] - l['c'][0]) ** 2 + (v[2] - l['c'][1]) ** 2)
+                d = math.hypot(x - l['c'][0], y - l['c'][1])
+                if d < 180 or (str(l.get('z', '')).startswith('V') and d < 450): base = n
+            if not base:
+                st = [x for x in (l.get('s') or []) if not any(k in x for k in ('交匯處', '公路', '天橋', '隧道', '迴旋處', '交匯'))]
+                if st: base = st[0]
+            if not base and GN_ALL:  # nearest official place name of any kind
+                n, x, y = min(GN_ALL, key=lambda v: (v[1] - l['c'][0]) ** 2 + (v[2] - l['c'][1]) ** 2)
+                if math.hypot(x - l['c'][0], y - l['c'][1]) < 900: base = n
+            if not base: base = l['a']
+            if base:
+                cnt[base] += 1; l['n'] = f'{base} {cnt[base]}號地'; l['auto'] = 1; named += 1
+        print('auto-named plots:', named)
     E['erase'] = [s for s in E['erase'] if s[0] not in ('L', 'R')]  # baked into the map now
     trim_note = f', trimmed to play area ({len(stray)} stray plots dropped)'
 kz = [z for z in data['blocks'] if z['lots']]; zm = {z['id']: i for i, z in enumerate(kz)}
